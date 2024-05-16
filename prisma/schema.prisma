@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int           @id @default(autoincrement())
+  name           String
+  email          String        @unique
+  phone          String?        @unique
+  image          String
+  bio            String?
+  gender         String
+  saves          Int[]
+  verified       Boolean       @default(false)
+  courses        UserCourse[]
+  password       String
+  createdAt      DateTime
+  updatedAt      DateTime      @default(now())
+  forgotPassword ForgotPassword?
+  userVerification UserVerification?
+}
+
+model UserCourse {
+  userId      Int      @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  courseId    Int      @map("course_id")
+  course      Course   @relation(fields: [courseId], references: [id])
+  @@id([userId, courseId])
+}
+
+model Course {
+  id               Int          @id @default(autoincrement())
+  title            String
+  description      String
+  instructorId     Int
+  instructor       Instructor   @relation(fields: [instructorId], references: [id])
+  price            Int
+  duration         Int
+  start            DateTime
+  end              DateTime
+  thumbnail        String       @default("course.jpg")
+  enrollment_limit Int
+  users            UserCourse[]
+  timetable        Timetable[]
+  createdAt        DateTime
+  updatedAt        DateTime     @default(now())
+}
+
+model Instructor {
+  id        Int         @id @default(autoincrement())
+  name      String
+  email     String      @unique
+  phone     String      @unique
+  major     String
+  bio       String
+  image     String
+  courses   Course[]
+  timetable Timetable[]
+  password  String
+}
+
+model Timetable {
+  id           Int        @id @default(autoincrement())
+  instructorId Int
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  courseId     Int
+  course       Course     @relation(fields: [courseId], references: [id])
+  start        DateTime
+  end          DateTime
+  duration     Int
+  day          String
+  createdAt    DateTime
+  updatedAt    DateTime   @default(now())
+}
+
+model ForgotPassword {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int       @unique
+  token     String
+  createdAt DateTime
+  updatedAt DateTime @default(now())
+}
+
+model UserVerification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id])
+  token     String
+  createdAt DateTime
+  updatedAt DateTime @default(now())
+  @@unique([userId, token])
+}
