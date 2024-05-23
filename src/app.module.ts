@@ -9,9 +9,10 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { mailer } from './constants/mailer.constants';
 import { ConfigModule } from '@nestjs/config';
 import { config } from './constants/config.constants';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, InstructorModule, PhoneModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config),],
+  imports: [PrismaModule, UserModule, InstructorModule, PhoneModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule,],
   controllers: [AppController],
   providers: [AppService],
 })

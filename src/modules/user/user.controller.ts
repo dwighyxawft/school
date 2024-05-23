@@ -28,9 +28,25 @@ export class UserController {
     return this.userService.sendVerification(body.email);
   }
 
+  @Post("reset/password")
+  resetPassword(@Body() body: { email: string }) {
+    return this.userService.resetPassword(body.email);
+  }
+
   @Get("verification/:id/:token")
-  userVerification(@Param("id") id: number, @Param("token") token: string){
-    return this.userService.userVerification(id, token);
+  userVerification(@Param("id") id: string, @Param("token") token: string){
+    return this.userService.userVerification(+id, token);
+  }
+
+  @Get("reset/password/:id/:token")
+  resetPasswordDefault(@Param("id") id: string, @Param("token") token: string){
+    return this.userService.resetPasswordDefault(+id, token);
+  }
+
+  @Patch("update/reset/:id")
+  @UsePipes(ValidationPipe)
+  updateResetPassword(@Param("id") id: string, @Body() body: UpdateUserDto){
+    return this.userService.updateResetPassword(+id, body);
   }
 
   @Get(':id')

@@ -14,28 +14,29 @@ datasource db {
 }
 
 model User {
-  id             Int           @id @default(autoincrement())
-  name           String
-  email          String        @unique
-  phone          String?        @unique
-  image          String
-  bio            String?
-  gender         String
-  saves          Int[]
-  verified       Boolean       @default(false)
-  courses        UserCourse[]
-  password       String
-  createdAt      DateTime
-  updatedAt      DateTime      @default(now())
-  forgotPassword ForgotPassword?
+  id               Int               @id @default(autoincrement())
+  name             String
+  email            String            @unique
+  phone            String?           @unique
+  image            String
+  bio              String?
+  gender           String
+  saves            Int[]
+  verified         Boolean           @default(false)
+  courses          UserCourse[]
+  password         String
+  createdAt        DateTime
+  updatedAt        DateTime          @default(now())
+  forgotPassword   ForgotPassword?
   userVerification UserVerification?
 }
 
 model UserCourse {
-  userId      Int      @map("user_id")
-  user        User     @relation(fields: [userId], references: [id])
-  courseId    Int      @map("course_id")
-  course      Course   @relation(fields: [courseId], references: [id])
+  userId   Int    @map("user_id")
+  user     User   @relation(fields: [userId], references: [id])
+  courseId Int    @map("course_id")
+  course   Course @relation(fields: [courseId], references: [id])
+
   @@id([userId, courseId])
 }
 
@@ -85,20 +86,25 @@ model Timetable {
 }
 
 model ForgotPassword {
-  id        Int       @id @default(autoincrement())
-  user      User      @relation(fields: [userId], references: [id])
-  userId    Int       @unique
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
   token     String
   createdAt DateTime
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiredAt DateTime?
+
+  @@unique([userId, token])
 }
 
 model UserVerification {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @unique
-  user      User      @relation(fields: [userId], references: [id])
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
   token     String
   createdAt DateTime
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiredAt DateTime?
+
   @@unique([userId, token])
 }
