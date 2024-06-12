@@ -25,10 +25,13 @@ model User {
   verified         Boolean           @default(false)
   courses          UserCourse[]
   password         String
-  createdAt        DateTime
-  updatedAt        DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  transactions     Transaction[]
   forgotPassword   ForgotPassword?
   userVerification UserVerification?
+  phoned           Boolean?          @default(false)
+  notifications    Notification[]    @relation("UserNotifications")
 }
 
 model UserCourse {
@@ -41,34 +44,62 @@ model UserCourse {
 }
 
 model Course {
-  id               Int          @id @default(autoincrement())
+  id               Int           @id @default(autoincrement())
   title            String
   description      String
   instructorId     Int
-  instructor       Instructor   @relation(fields: [instructorId], references: [id])
-  price            Int
+  instructor       Instructor    @relation(fields: [instructorId], references: [id])
+  price            BigInt
   duration         Int
   start            DateTime
   end              DateTime
-  thumbnail        String       @default("course.jpg")
+  thumbnail        String        @default("course.jpg")
   enrollment_limit Int
   users            UserCourse[]
   timetable        Timetable[]
-  createdAt        DateTime
-  updatedAt        DateTime     @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  transactions     Transaction[]
 }
 
 model Instructor {
-  id        Int         @id @default(autoincrement())
-  name      String
-  email     String      @unique
-  phone     String      @unique
-  major     String
-  bio       String
-  image     String
-  courses   Course[]
-  timetable Timetable[]
-  password  String
+  id                     Int                     @id @default(autoincrement())
+  name                   String
+  email                  String                  @unique
+  phone                  String?                 @unique
+  major                  String
+  bio                    String?
+  image                  String?
+  gender                 String
+  dob                    DateTime
+  age                    Int?
+  courses                Course[]
+  timetable              Timetable[]
+  password               String
+  verified               Boolean                 @default(false)
+  access                 Boolean                 @default(false)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  InstructorVerification InstructorVerification?
+  approval               InstructorApproval?
+  InstructForgotPassword InstructForgotPassword?
+  phoned                 Boolean?                @default(false)
+  adminId                Int?
+  admin                  Admin?                  @relation(fields: [adminId], references: [id])
+  notifications          Notification[]          @relation("InstructorNotifications")
+}
+
+model InstructorApproval {
+  id           Int        @id @default(autoincrement())
+  instructorId Int        @unique
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  certificate  String
+  youtube      String
+  website      String
+  tiktok       String?
+  interview    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Timetable {
@@ -81,30 +112,120 @@ model Timetable {
   end          DateTime
   duration     Int
   day          String
-  createdAt    DateTime
-  updatedAt    DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model ForgotPassword {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int      @unique
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int       @unique
   token     String
-  createdAt DateTime
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   expiredAt DateTime?
 
   @@unique([userId, token])
 }
 
+model InstructForgotPassword {
+  id           Int        @id @default(autoincrement())
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  instructorId Int        @unique
+  token        String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  expiredAt    DateTime?
+
+  @@unique([instructorId, token])
+}
+
 model UserVerification {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
+  id        Int       @id @default(autoincrement())
+  userId    Int       @unique
+  user      User      @relation(fields: [userId], references: [id])
   token     String
-  createdAt DateTime
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   expiredAt DateTime?
 
   @@unique([userId, token])
+}
+
+model InstructorVerification {
+  id           Int        @id @default(autoincrement())
+  instructorId Int        @unique
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  token        String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  expiredAt    DateTime?
+
+  @@unique([instructorId, token])
+}
+
+model AdminVerification {
+  id        Int        @id @default(autoincrement())
+  adminId   Int        @unique
+  admin     Admin @relation(fields: [adminId], references: [id])
+  token     String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  expiredAt DateTime?
+
+  @@unique([adminId, token])
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  courseId  Int      @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id])
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  amount    BigInt
+  status    String
+  ref       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Admin {
+  id                  Int                @id @default(autoincrement())
+  name                String?
+  email               String             @unique
+  phone               String?            @unique
+  password            String
+  role                String             @default("admin")
+  gender              String
+  image               String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  verified            Boolean?           @default(false)
+  phoned              Boolean?           @default(false)
+  notifications       Notification[]     @relation("AdminNotifications")
+  Instructor          Instructor[]
+  AdminVerification   AdminVerification?
+}
+
+model Notification {
+  id            Int           @id @default(autoincrement())
+  message       String
+  personnelId   Int
+  personnelType PersonnelType
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  User          User?         @relation("UserNotifications", fields: [userId], references: [id])
+  userId        Int?
+  Instructor    Instructor?   @relation("InstructorNotifications", fields: [instructorId], references: [id])
+  instructorId  Int?
+  Admin         Admin?        @relation("AdminNotifications", fields: [adminId], references: [id])
+  adminId       Int?
+
+  @@index([personnelId, personnelType])
+}
+
+enum PersonnelType {
+  USER
+  INSTRUCTOR
+  ADMIN
 }

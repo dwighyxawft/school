@@ -68,4 +68,13 @@ export class CreateUserDto {
   saves?: number[];
 
   createdAt: Date;
+
+  @IsBoolean()
+  @IsOptional()
+  phoned?: boolean;
+
+  @IsNumber({}, { each: true })
+  @IsArray()
+  @IsOptional()
+  notifications?: number[];
 }

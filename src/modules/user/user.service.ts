@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'database/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
@@ -62,7 +61,7 @@ export class UserService {
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
     console.log(token);
-    if (user.userVerification == null) {
+    if (!user.userVerification) {
       await this.prisma.user.update({
         where: { id: user.id },
         data: {
@@ -195,6 +194,7 @@ export class UserService {
           },
         },
         userVerification: true,
+        transactions: true,
       },
     });
   }
@@ -209,6 +209,7 @@ export class UserService {
           },
         },
         userVerification: true,
+        transactions: true,
         forgotPassword: true,
       },
     });
@@ -250,13 +251,15 @@ export class UserService {
       throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
     }
 
-    if (date > user.forgotPassword.expiredAt || token != user.forgotPassword.token) {
+    if (
+      date > user.forgotPassword.expiredAt ||
+      token != user.forgotPassword.token
+    ) {
       throw new HttpException(
         'Link has expired, Please try again',
         HttpStatus.BAD_REQUEST,
       );
     }
-
 
     this.prisma.user.update({
       where: { id },
@@ -308,6 +311,23 @@ export class UserService {
   }
 
   public async remove(id: number) {
-    return this.prisma.user.delete({ where: { id } });
+    const user = await this.findOne(id);
+    if (!user) throw new HttpException('User Not Found', HttpStatus.NOT_FOUND);
+
+    if (user.forgotPassword !== null) {
+      await this.prisma.forgotPassword.delete({
+        where: { userId: id },
+      });
+    }
+
+    if (user.userVerification !== null) {
+      await this.prisma.userVerification.delete({
+        where: { userId: id },
+      });
+    }
+
+    return this.prisma.user.delete({
+      where: { id },
+    });
   }
 }

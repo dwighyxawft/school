@@ -18,7 +18,7 @@ export const mailer = {
     from: configService.get<string>('MAIL_AUTH_USER'),
   },
   template: {
-    dir: path.join(__dirname, "..", "..", "..", "src", "templates"),
+    dir: path.join(__dirname, '..', '..', '..', 'src', 'templates'),
     adapter: new HandlebarsAdapter(),
     options: {
       strict: true,

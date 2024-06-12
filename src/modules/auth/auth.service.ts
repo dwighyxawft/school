@@ -9,8 +9,7 @@ export class AuthService {
     public async validateUserCreds(email: string, password: string){
         const user = await this.userService.getUserByEmail(email);
         if(!user) throw new HttpException("User not found", HttpStatus.BAD_REQUEST);
-        const isMatch = await argon2.verify(user.password, password);
-        if(!isMatch) throw new HttpException("Email or Password is incorrect", HttpStatus.UNAUTHORIZED)
+        if(!(await argon2.verify(user.password, password))) throw new HttpException("Email or Password is incorrect", HttpStatus.UNAUTHORIZED)
         return user;
     }
 

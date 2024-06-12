@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Admin" ALTER COLUMN "name" DROP NOT NULL;
