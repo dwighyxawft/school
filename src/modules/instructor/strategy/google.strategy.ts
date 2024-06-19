@@ -5,11 +5,11 @@ import { Strategy, VerifyCallback } from "passport-google-oauth20";
 
 @Injectable()
 
-export class UserGoogleStrategy extends PassportStrategy(Strategy, "google-user"){ constructor(private config: ConfigService){
+export class InstructorGoogleStrategy extends PassportStrategy(Strategy, "google-instructor"){ constructor(private config: ConfigService){
     super({
         clientID: config.get<string>("GOOGLE_AUTH_ID"),
         clientSecret: config.get<string>("GOOGLE_AUTH_SECRET"),
-        callbackURL: "http://localhost:3000/user/google/callback",
+        callbackURL: "http://localhost:3000/instructor/google/callback",
         scope: ["email", "profile", 'https://www.googleapis.com/auth/user.gender.read']
     })
 }

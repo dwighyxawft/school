@@ -77,4 +77,8 @@ export class CreateUserDto {
   @IsArray()
   @IsOptional()
   notifications?: number[];
+
+  @IsBoolean()
+  @IsOptional()
+  verified?: boolean;
 }

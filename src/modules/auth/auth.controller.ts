@@ -31,4 +31,5 @@ export class AuthController {
   public async user(@Request() req): Promise<any> {
     return req.user;
   }
+
 }

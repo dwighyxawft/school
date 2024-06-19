@@ -1,13 +1,32 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+  Req,
+  Res,
+  UseInterceptors,
+  Request,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post("register")
+  @Post('register')
   @UsePipes(ValidationPipe)
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.register(createUserDto);
@@ -18,45 +37,72 @@ export class UserController {
     return this.userService.findAll();
   }
 
-  @Post("email")
+  @Post('email')
   getUserByEmail(@Body() body: { email: string }) {
     return this.userService.getUserByEmail(body.email);
   }
 
-  @Post("verify")
+  @Post('phone')
+  getUserByPhone(@Body() body: { phone: string }) {
+    return this.userService.getUserByPhone(body.phone);
+  }
+
+  @Post('verify')
   verifyUserByEmail(@Body() body: { email: string }) {
     return this.userService.sendVerification(body.email);
   }
 
-  @Post("reset/password")
+  @Post('reset/password')
   resetPassword(@Body() body: { email: string }) {
     return this.userService.resetPassword(body.email);
   }
 
-  @Get("verification/:id/:token")
-  userVerification(@Param("id") id: string, @Param("token") token: string){
+  @Get('verification/:id/:token')
+  userVerification(@Param('id') id: string, @Param('token') token: string) {
     return this.userService.userVerification(+id, token);
   }
 
-  @Get("reset/password/:id/:token")
-  resetPasswordDefault(@Param("id") id: string, @Param("token") token: string){
+  @Get('reset/password/:id/:token')
+  resetPasswordDefault(@Param('id') id: string, @Param('token') token: string) {
     return this.userService.resetPasswordDefault(+id, token);
   }
 
-  @Patch("update/reset/:id")
+  @Patch('update/reset/:id')
   @UsePipes(ValidationPipe)
-  updateResetPassword(@Param("id") id: string, @Body() body: UpdateUserDto){
+  updateResetPassword(@Param('id') id: string, @Body() body: UpdateUserDto) {
     return this.userService.updateResetPassword(+id, body);
   }
+
+  @UseGuards(AuthGuard('google-user'))
+  @Get('google')
+  public async googleAuth(@Req() req) {}
+  
+  @UseGuards(AuthGuard('google-user'))
+  @UsePipes(ValidationPipe)
+  @Get('google/callback')
+  public async googleAuthRedirect(
+    @Req() req,
+    @Res() res: Response
+  ) {
+    const user: UpdateUserDto = {} as UpdateUserDto;
+    const checkMail = await this.userService.googleLoginAndSignup(req, user);
+    console.log(checkMail);
+    const token = await this.userService.generateToken(checkMail);
+    res.cookie('access_token', token.access_token, { httpOnly: true });
+    return res.send({ token: token.access_token });
+  }
+  
 
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  update(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(req.user.id, updateUserDto);
   }
 
   @Delete(':id')

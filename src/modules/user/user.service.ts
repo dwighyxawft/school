@@ -5,12 +5,16 @@ import { PrismaService } from 'database/prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   constructor(
     private prisma: PrismaService,
     private mailer: MailerService,
+    private config: ConfigService,
+    private jwtService: JwtService,
   ) {}
   public async register(data: CreateUserDto) {
     const checkMail = await this.getUserByEmail(data.email);
@@ -30,8 +34,7 @@ export class UserService {
             createdAt: new Date(),
           },
         });
-        await this.sendVerification(user.email);
-        return { status: true, msg: 'User registration successful' };
+        return await this.sendVerification(user.email);
       } else {
         return { status: false, msg: 'Passwords are not matching' };
       }
@@ -43,6 +46,21 @@ export class UserService {
   public async getUserByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
+      include: {
+        courses: {
+          select: {
+            course: true,
+          },
+        },
+        userVerification: true,
+        forgotPassword: true,
+      },
+    });
+  }
+
+  public async getUserByPhone(phone: string) {
+    return this.prisma.user.findUnique({
+      where: { phone },
       include: {
         courses: {
           select: {
@@ -306,8 +324,93 @@ export class UserService {
     }
   }
 
-  public async update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  public async googleLoginAndSignup(req, user: UpdateUserDto) {
+      if (!req.user)
+          throw new HttpException('Authentication Error', HttpStatus.UNAUTHORIZED);
+
+      const { email, name, picture } = req.user;
+      const checkMail = await this.getUserByEmail(email);
+      
+      if (checkMail) {
+          return checkMail;
+      } else {
+          const numbers = "1234567890";
+          const symbols = ".,?!@#$%*&";
+          let chosen_numbers = "";
+          for (let i = 0; i < 2; i++) {
+              const random = Math.floor(Math.random() * numbers.length);
+              chosen_numbers += numbers[random];
+          }
+          const chosen_symbol = symbols[Math.floor(Math.random() * symbols.length)];
+          const gender = "default";
+          // Ensure user is properly initialized
+          user = {} as UpdateUserDto;
+          user.name = name;
+          user.email = email;
+          user.image = picture;
+          user.verified = true;
+          user.gender = gender;
+
+          const password = name + chosen_numbers + chosen_symbol;
+          const hash = await argon2.hash(password);
+          user.password = hash;
+
+          return this.prisma.user.create({
+              data: {
+                  name: user.name,
+                  email: user.email,
+                  image: user.image,
+                  gender: user.gender,
+                  password: user.password,
+                  verified: user.verified
+              },
+          });
+      }
+  }
+
+  public async generateToken(user: any){
+      return {
+          access_token: this.jwtService.sign({
+              name: user.name,
+              sub: user.id
+          })
+      }
+  }
+
+  public async update(id: number, updates: UpdateUserDto) {
+    const user = await this.findOne(id);
+    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+    return this.prisma.user.update({where: {id}, data: {
+      name: updates.name,
+      gender: updates.gender,
+      bio: updates.bio
+    }})
+  }
+
+  public async updateEmail(id: number, updates: UpdateUserDto) {
+    const user = await this.findOne(id);
+    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+    if(updates.email === user.email)throw new HttpException("You cannot update to the same email", HttpStatus.CONFLICT);
+    const checkMail = await this.getUserByEmail(updates.email);
+    if(checkMail) throw new HttpException("User already exists", HttpStatus.FORBIDDEN);
+    await this.prisma.user.update({where: {id}, data: {
+      email: updates.email,
+      verified: false
+    }})
+    return await this.sendVerification(updates.email);
+  }
+
+  public async updatePhone(id: number, updates: UpdateUserDto) {
+    const user = await this.findOne(id);
+    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+    if(updates.phone === user.phone)throw new HttpException("You cannot update to the same email", HttpStatus.CONFLICT);
+    const checkPhone = await this.getUserByPhone(updates.phone);
+    if(checkPhone) throw new HttpException("User already exists", HttpStatus.FORBIDDEN);
+    await this.prisma.user.update({where: {id}, data: {
+      phone: updates.phone,
+      phoned: false
+    }})
+    return await this.sendVerification(updates.email);
   }
 
   public async remove(id: number) {

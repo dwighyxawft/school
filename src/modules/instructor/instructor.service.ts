@@ -5,17 +5,19 @@ import { PrismaService } from 'database/prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class InstructorService {
   constructor(
     private prisma: PrismaService,
     private mailer: MailerService,
+    private jwtService: JwtService
   ) {}
   public async register(instructor: CreateInstructorDto) {
     const checkMail = await this.getInstructorByEmail(instructor.email);
     if (checkMail)
-      throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+      throw new HttpException('Instructor already exists', HttpStatus.FORBIDDEN);
     if (instructor.password !== instructor.confirm)
       throw new HttpException(
         'Passwords are not matching',
@@ -48,7 +50,7 @@ export class InstructorService {
         password: instructor.password,
       },
     });
-    this.sendVerification(instructor.email);
+    return await this.sendVerification(instructor.email);
   }
 
   public async instructVerify(email: string) {
@@ -160,7 +162,7 @@ export class InstructorService {
   }
 
   public async findOne(id: number) {
-    return this.prisma.instructor.findUnique({
+    return await this.prisma.instructor.findUnique({
       where: { id },
       include: {
         courses: true,
@@ -318,6 +320,62 @@ export class InstructorService {
       throw new HttpException('Passwords not matching', HttpStatus.CONFLICT);
     }
   }
+
+  public async googleLoginAndSignup(req, instructor: UpdateInstructorDto) {
+    if (!req.user)
+        throw new HttpException('Authentication Error', HttpStatus.UNAUTHORIZED);
+
+    const { email, name, picture } = req.user;
+    const checkMail = await this.getInstructorByEmail(email);
+    
+    if (checkMail) {
+        return checkMail;
+    } else {
+        const numbers = "1234567890";
+        const symbols = ".,?!@#$%*&";
+        let chosen_numbers = "";
+        for (let i = 0; i < 2; i++) {
+            const random = Math.floor(Math.random() * numbers.length);
+            chosen_numbers += numbers[random];
+        }
+        const chosen_symbol = symbols[Math.floor(Math.random() * symbols.length)];
+        const gender = "default";
+        // Ensure user is properly initialized
+        instructor = {} as UpdateInstructorDto;
+        instructor.name = name;
+        instructor.email = email;
+        instructor.image = picture;
+        instructor.verified = true;
+        instructor.gender = gender;
+        instructor.major = "default";
+
+        const password = name + chosen_numbers + chosen_symbol;
+        const hash = await argon2.hash(password);
+        instructor.password = hash;
+
+        return this.prisma.instructor.create({
+            data: {
+                name: instructor.name,
+                email: instructor.email,
+                image: instructor.image,
+                gender: instructor.gender,
+                password: instructor.password,
+                verified: instructor.verified,
+                major: instructor.major,
+                dob: new Date()
+            },
+        });
+    }
+}
+
+public async generateToken(user: any){
+    return {
+        access_token: this.jwtService.sign({
+            name: user.name,
+            sub: user.id
+        })
+    }
+}
 
   update(id: number, updateInstructorDto: UpdateInstructorDto) {
     return `This action updates a #${id} instructor`;

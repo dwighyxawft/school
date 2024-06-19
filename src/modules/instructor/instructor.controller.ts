@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, Req, UseGuards, Res } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 
 @Controller('instructor')
 export class InstructorController {
@@ -18,10 +20,10 @@ export class InstructorController {
     return this.instructorService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.instructorService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.instructorService.findOne(+id);
+  // }
 
   @Post('email')
   getInstructorByEmail(@Body() instructor: {email: string}) {
@@ -52,6 +54,22 @@ export class InstructorController {
   @UsePipes(ValidationPipe)
   updateResetPassword(@Param("id") id: string, @Body() body: UpdateInstructorDto){
     return this.instructorService.updateResetPassword(+id, body);
+  }
+
+  @UseGuards(AuthGuard("google-instructor"))
+  @Get("google")
+  public async googleAuth(@Req() req){}
+
+  @UseGuards(AuthGuard("google-instructor"))
+  @Get("google/callback")
+  @UsePipes(ValidationPipe)
+  public async googleAuthRedirect(@Req() req, @Res() res: Response){
+    const instructor: UpdateInstructorDto = {} as UpdateInstructorDto;
+    const checkMail = await this.instructorService.googleLoginAndSignup(req, instructor);
+    console.log(checkMail);
+    const token = await this.instructorService.generateToken(checkMail);
+    res.cookie('access_token', token.access_token, { httpOnly: true });
+    return res.send({ token: token.access_token });
   }
 
   @Patch(':id')

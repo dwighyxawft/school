@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
