@@ -7,6 +7,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { RandomUtil } from 'src/util/random.util';
 
 @Injectable()
 export class UserService {
@@ -15,6 +17,8 @@ export class UserService {
     private mailer: MailerService,
     private config: ConfigService,
     private jwtService: JwtService,
+    private twilio: TwilioProvider,
+    private random: RandomUtil
   ) {}
   public async register(data: CreateUserDto) {
     const checkMail = await this.getUserByEmail(data.email);
@@ -54,6 +58,7 @@ export class UserService {
         },
         userVerification: true,
         forgotPassword: true,
+        whatsappVerification: true,
       },
     });
   }
@@ -69,6 +74,7 @@ export class UserService {
         },
         userVerification: true,
         forgotPassword: true,
+        whatsappVerification: true,
       },
     });
   }
@@ -109,13 +115,54 @@ export class UserService {
     return token;
   }
 
+  public async whatsappVerificationData(phone: string) {
+    const user = await this.getUserByPhone(phone);
+    const currentDate = new Date();
+    const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+    const numbers: string = '1234567890';
+    let token: string = '';
+    for (let i = 0; i++; i < 6) {
+      const index = Math.floor(Math.random() * numbers.length);
+      token += numbers[index];
+    }
+    console.log(token);
+    if (!user.whatsappVerification) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          whatsappVerification: {
+            create: {
+              token: token,
+              createdAt: currentDate,
+              expiredAt: expiryDate,
+            },
+          },
+        },
+      });
+    } else {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          whatsappVerification: {
+            update: {
+              token: token,
+              createdAt: currentDate,
+              expiredAt: expiryDate,
+            },
+          },
+        },
+      });
+    }
+    return token;
+  }
+
   public async userPasswordData(email: string) {
     const user = await this.getUserByEmail(email);
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
     console.log(token);
-    if (user.forgotPassword == null) {
+    if (!user.forgotPassword) {
       await this.prisma.user.update({
         where: { id: user.id },
         data: {
@@ -170,6 +217,19 @@ export class UserService {
     }
   }
 
+  public async sendWhatsappVerification(phone: string) {
+    const checkPhone = await this.getUserByPhone(phone);
+    if (!checkPhone)
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    const token = await this.whatsappVerificationData(phone);
+    const body: string =
+      'Welcome to xawft academy. To verify your whatsapp contact, use the token ' +
+      token +
+      ' to verify your whatsapp contact';
+    await this.twilio.sendWhatsAppMessage(phone, body);
+    return { status: true, msg: 'Token sent to your whatsapp successfully' };
+  }
+
   public async userVerification(id: number, token: string) {
     const date = new Date();
     const userVerification = await this.prisma.userVerification.findUnique({
@@ -203,6 +263,33 @@ export class UserService {
     return { status: true, msg: 'User successfully verified' };
   }
 
+  public async verifyPhone(id: number, token: string) {
+    const user = await this.findOne(id);
+    const date = new Date();
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    if (!user.whatsappVerification || user.whatsappVerification == null)
+      throw new HttpException(
+        'Whatsapp verification not initialized',
+        HttpStatus.BAD_REQUEST,
+      );
+    if (token !== user.whatsappVerification.token)
+      throw new HttpException('Token is incorrect', HttpStatus.CONFLICT);
+    if (
+      token === user.whatsappVerification.token &&
+      date > user.whatsappVerification.expiredAt
+    )
+      throw new HttpException(
+        'Token has expired, Please request for a new one',
+        HttpStatus.EXPECTATION_FAILED,
+      );
+    return await this.prisma.user.update({
+      where: { id },
+      data: {
+        phoned: true,
+      },
+    });
+  }
+
   public async findAll() {
     return await this.prisma.user.findMany({
       include: {
@@ -229,6 +316,7 @@ export class UserService {
         userVerification: true,
         transactions: true,
         forgotPassword: true,
+        whatsappVerification: true,
       },
     });
   }
@@ -325,92 +413,127 @@ export class UserService {
   }
 
   public async googleLoginAndSignup(req, user: UpdateUserDto) {
-      if (!req.user)
-          throw new HttpException('Authentication Error', HttpStatus.UNAUTHORIZED);
+    if (!req.user)
+      throw new HttpException('Authentication Error', HttpStatus.UNAUTHORIZED);
 
-      const { email, name, picture } = req.user;
-      const checkMail = await this.getUserByEmail(email);
-      
-      if (checkMail) {
-          return checkMail;
-      } else {
-          const numbers = "1234567890";
-          const symbols = ".,?!@#$%*&";
-          let chosen_numbers = "";
-          for (let i = 0; i < 2; i++) {
-              const random = Math.floor(Math.random() * numbers.length);
-              chosen_numbers += numbers[random];
-          }
-          const chosen_symbol = symbols[Math.floor(Math.random() * symbols.length)];
-          const gender = "default";
-          // Ensure user is properly initialized
-          user = {} as UpdateUserDto;
-          user.name = name;
-          user.email = email;
-          user.image = picture;
-          user.verified = true;
-          user.gender = gender;
+    const { email, name, picture } = req.user;
+    const checkMail = await this.getUserByEmail(email);
 
-          const password = name + chosen_numbers + chosen_symbol;
-          const hash = await argon2.hash(password);
-          user.password = hash;
+    if (checkMail) {
+      return checkMail;
+    } else {
+      const chosen = await this.random.randomPassword();
+      const gender = 'default';
+      // Ensure user is properly initialized
+      user = {} as UpdateUserDto;
+      user.name = name;
+      user.email = email;
+      user.image = picture;
+      user.verified = true;
+      user.gender = gender;
 
-          return this.prisma.user.create({
-              data: {
-                  name: user.name,
-                  email: user.email,
-                  image: user.image,
-                  gender: user.gender,
-                  password: user.password,
-                  verified: user.verified
-              },
-          });
-      }
+      const password = name + chosen;
+      const hash = await argon2.hash(password);
+      user.password = hash;
+
+      return this.prisma.user.create({
+        data: {
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          gender: user.gender,
+          password: user.password,
+          verified: user.verified,
+        },
+      });
+    }
   }
 
-  public async generateToken(user: any){
-      return {
-          access_token: this.jwtService.sign({
-              name: user.name,
-              sub: user.id
-          })
-      }
+  public async generateToken(user: any) {
+    return {
+      access_token: this.jwtService.sign({
+        name: user.name,
+        sub: user.id,
+      }),
+    };
   }
 
   public async update(id: number, updates: UpdateUserDto) {
     const user = await this.findOne(id);
-    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-    return this.prisma.user.update({where: {id}, data: {
-      name: updates.name,
-      gender: updates.gender,
-      bio: updates.bio
-    }})
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    return await this.prisma.user.update({
+      where: { id },
+      data: {
+        name: updates.name,
+        gender: updates.gender,
+        bio: updates.bio,
+      },
+    });
   }
 
   public async updateEmail(id: number, updates: UpdateUserDto) {
     const user = await this.findOne(id);
-    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-    if(updates.email === user.email)throw new HttpException("You cannot update to the same email", HttpStatus.CONFLICT);
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    if (updates.email === user.email)
+      throw new HttpException(
+        'You cannot update to the same email',
+        HttpStatus.CONFLICT,
+      );
     const checkMail = await this.getUserByEmail(updates.email);
-    if(checkMail) throw new HttpException("User already exists", HttpStatus.FORBIDDEN);
-    await this.prisma.user.update({where: {id}, data: {
-      email: updates.email,
-      verified: false
-    }})
+    if (checkMail)
+      throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        email: updates.email,
+        verified: false,
+      },
+    });
     return await this.sendVerification(updates.email);
   }
 
   public async updatePhone(id: number, updates: UpdateUserDto) {
     const user = await this.findOne(id);
-    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-    if(updates.phone === user.phone)throw new HttpException("You cannot update to the same email", HttpStatus.CONFLICT);
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    if (updates.phone === user.phone)
+      throw new HttpException(
+        'You cannot update to the same phone',
+        HttpStatus.CONFLICT,
+      );
     const checkPhone = await this.getUserByPhone(updates.phone);
-    if(checkPhone) throw new HttpException("User already exists", HttpStatus.FORBIDDEN);
-    await this.prisma.user.update({where: {id}, data: {
-      phone: updates.phone,
-      phoned: false
-    }})
-    return await this.sendVerification(updates.email);
+    if (checkPhone)
+      throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        phone: updates.phone,
+        phoned: false,
+      },
+    });
+    return await this.sendWhatsappVerification(updates.phone);
+  }
+
+  public async updatePassword(id: number, updates: UpdateUserDto) {
+    const user = await this.findOne(id);
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    const { previous, password, confirm } = updates;
+    if (!(await argon2.verify(previous, user.password)))
+      throw new HttpException(
+        'Password is incorrect',
+        HttpStatus.EXPECTATION_FAILED,
+      );
+    if (password !== confirm)
+      throw new HttpException(
+        'Passwords are not matching',
+        HttpStatus.CONFLICT,
+      );
+    const hash = await argon2.hash(password);
+    return await this.prisma.user.update({
+      where: { id },
+      data: {
+        password: hash,
+      },
+    });
   }
 
   public async remove(id: number) {

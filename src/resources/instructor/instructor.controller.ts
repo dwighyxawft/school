@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, Req, UseGuards, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, Req, UseGuards, Res, Request, UseInterceptors } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 
 @Controller('instructor')
 export class InstructorController {
@@ -33,6 +35,13 @@ export class InstructorController {
   @Get("verification/:id/:token")
   verifyInstructor(@Param("id") id: string, @Param("token") token: string){
     return this.instructorService.instructVerification(+id, token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('verify/phone')
+  verifyPhone(@Request() req ,@Body() body: {token: string}) {
+    return this.instructorService.verifyPhone(req.user.id, body.token);
   }
 
   @Post('verify')
@@ -72,10 +81,34 @@ export class InstructorController {
     return res.send({ token: token.access_token });
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInstructorDto: UpdateInstructorDto) {
-    return this.instructorService.update(+id, updateInstructorDto);
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('personal/settings')
+  update(@Request() req ,@Body() updates: UpdateInstructorDto) {
+    return this.instructorService.update(req.user.id, updates);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('email/settings')
+  updateEmail(@Request() req ,@Body() updates: UpdateInstructorDto) {
+    return this.instructorService.updateEmail(req.user.id, updates);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('phone/settings')
+  updatePhone(@Request() req ,@Body() updates: UpdateInstructorDto) {
+    return this.instructorService.updatePhone(req.user.id, updates);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('phone/settings')
+  updatePassword(@Request() req ,@Body() updates: UpdateInstructorDto) {
+    return this.instructorService.updatePassword(req.user.id, updates);
+  }
+
 
   @Delete(':id')
   remove(@Param('id') id: string) {

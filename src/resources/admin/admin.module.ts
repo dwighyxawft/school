@@ -7,6 +7,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 @Module({
   controllers: [AdminController],
   providers: [AdminService],
-  imports: [PrismaModule, MailerModule]
+  imports: [PrismaModule, MailerModule],
+  exports: [AdminService]
 })
 export class AdminModule {}

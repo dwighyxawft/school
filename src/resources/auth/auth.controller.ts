@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -30,6 +31,22 @@ export class AuthController {
   @Get('user')
   public async user(@Request() req): Promise<any> {
     return req.user;
+  }
+
+  @Post("instructor/login")
+  public async instructor(@Body() body: {email: string, password: string}, @Res() res: Response){
+    const instructor = await this.authService.getInstructorCreds(body.email, body.password); 
+    const token = await this.authService.generateToken(instructor);
+    res.cookie('access_token', token.access_token, { httpOnly: true });
+    return res.send({ token: token.access_token });
+  }
+
+  @Post("admin/login")
+  public async admin(@Body() body: {email: string, password: string}, @Res() res: Response){
+    const admin = await this.authService.getAdminCreds(body.email, body.password); 
+    const token = await this.authService.generateToken(admin);
+    res.cookie('access_token', token.access_token, { httpOnly: true });
+    return res.send({ token: token.access_token });
   }
 
 }

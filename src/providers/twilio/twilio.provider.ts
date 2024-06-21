@@ -16,8 +16,8 @@ export class TwilioProvider {
     });
   }
 
-  public async sendWhatsAppMessage(to: string, body: string): Promise<void> {
-    await this.client.messages.create({
+  public async sendWhatsAppMessage(to: string, body: string) {
+    return await this.client.messages.create({
       body: body,
       from: 'whatsapp:+14155238886',
       to: `whatsapp:${to}`,

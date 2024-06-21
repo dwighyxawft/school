@@ -6,10 +6,13 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { UserGoogleStrategy } from './strategy/google.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtOptions } from 'src/constants/jwt.constant';
+import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { RandomUtil } from 'src/util/random.util';
+import { JwtStrategy } from '../auth/jwt.strategy';
 
 @Module({
   controllers: [UserController],
-  providers: [UserService, UserGoogleStrategy],
+  providers: [UserService, UserGoogleStrategy, TwilioProvider, RandomUtil, JwtStrategy],
   imports: [PrismaModule, MailerModule, JwtModule.register(jwtOptions)],
   exports: [UserService]
 })

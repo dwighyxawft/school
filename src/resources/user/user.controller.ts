@@ -62,6 +62,13 @@ export class UserController {
     return this.userService.userVerification(+id, token);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('verify/phone')
+  verifyPhone(@Request() req ,@Body() body: {token: string}) {
+    return this.userService.verifyPhone(req.user.id, body.token);
+  }
+
   @Get('reset/password/:id/:token')
   resetPasswordDefault(@Param('id') id: string, @Param('token') token: string) {
     return this.userService.resetPasswordDefault(+id, token);
@@ -100,9 +107,30 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
-  @Patch(':id')
+  @Patch('personal/settings')
   update(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(req.user.id, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('email/settings')
+  updateEmail(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
+    return this.userService.updateEmail(req.user.id, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('phone/settings')
+  updatePhone(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
+    return this.userService.updatePhone(req.user.id, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('phone/settings')
+  updatePassword(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
+    return this.userService.updatePassword(req.user.id, updateUserDto);
   }
 
   @Delete(':id')

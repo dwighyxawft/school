@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsBoolean,
-  IsDateString,
   IsEmail,
   IsNotEmpty,
   IsNumber,
@@ -12,10 +11,15 @@ import {
   Matches,
 } from 'class-validator';
 
-export class CreateInstructorDto {
-  @IsNotEmpty()
-  @Length(3, 100)
+export class CreateUserDto {
   @IsString()
+  @IsNotEmpty()
+  firstname: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastname: string;
+
   name: string;
 
   @IsEmail()
@@ -23,28 +27,19 @@ export class CreateInstructorDto {
   email: string;
 
   @IsPhoneNumber()
+  @IsNotEmpty()
   @IsOptional()
   phone?: string;
 
   @IsString()
   @IsNotEmpty()
-  major: string;
-
-  @IsString()
-  @IsNotEmpty()
   gender: string;
 
+  image: string;
+
+  @IsOptional()
   @IsString()
-  @IsOptional()
-  image?: string;
-
-  @IsDateString()
-  @IsNotEmpty()
-  dob: Date;
-
-  @IsNumber()
-  @IsOptional()
-  age?: number;
+  bio?: string;
 
   @IsString()
   @Length(8, 24)
@@ -62,6 +57,14 @@ export class CreateInstructorDto {
   })
   confirm: string;
 
+  @IsString()
+  @IsOptional()
+  @Matches(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$/, {
+    message:
+      'Password must have 1 uppercase, lowercase letter along with a number and a special character',
+  })
+  previous?: string;
+
   @IsNumber({}, { each: true })
   @IsArray()
   @IsOptional()
@@ -70,19 +73,9 @@ export class CreateInstructorDto {
   @IsNumber({}, { each: true })
   @IsArray()
   @IsOptional()
-  timetable?: number[];
+  saves?: number[];
 
-  @IsBoolean()
-  @IsOptional()
-  verified?: boolean;
-
-  @IsString()
-  @IsOptional()
-  bio?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  access?: boolean;
+  createdAt: Date;
 
   @IsBoolean()
   @IsOptional()
@@ -92,4 +85,8 @@ export class CreateInstructorDto {
   @IsArray()
   @IsOptional()
   notifications?: number[];
+
+  @IsBoolean()
+  @IsOptional()
+  verified?: boolean;
 }

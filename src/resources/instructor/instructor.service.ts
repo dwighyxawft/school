@@ -6,13 +6,17 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
+import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { RandomUtil } from 'src/util/random.util';
 
 @Injectable()
 export class InstructorService {
   constructor(
     private prisma: PrismaService,
     private mailer: MailerService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private twilio: TwilioProvider,
+    private random: RandomUtil
   ) {}
   public async register(instructor: CreateInstructorDto) {
     const checkMail = await this.getInstructorByEmail(instructor.email);
@@ -115,6 +119,19 @@ export class InstructorService {
       throw new HttpException('Instructor Not Found', HttpStatus.NOT_FOUND);
   }
 
+  public async sendWhatsappVerification(phone: string) {
+    const checkPhone = await this.getInstructorByPhone(phone);
+    if (!checkPhone)
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    const token = await this.whatsappVerificationData(phone);
+    const body: string =
+      'Welcome to xawft academy. To verify your whatsapp contact, use the token ' +
+      token +
+      ' to verify your whatsapp contact';
+    await this.twilio.sendWhatsAppMessage(phone, body);
+    return { status: true, msg: 'Token sent to your whatsapp successfully' };
+  }
+
   public async instructVerification(id: number, token: string) {
     const date = new Date();
     const instructorVerify =
@@ -149,6 +166,33 @@ export class InstructorService {
     return { status: true, msg: 'Instructor successfully verified' };
   }
 
+  public async verifyPhone(id: number, token: string) {
+    const instructor = await this.findOne(id);
+    const date = new Date();
+    if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    if (!instructor.whatsappVerification || instructor.whatsappVerification == null)
+      throw new HttpException(
+        'Whatsapp verification not initialized',
+        HttpStatus.BAD_REQUEST,
+      );
+    if (token !== instructor.whatsappVerification.token)
+      throw new HttpException('Token is incorrect', HttpStatus.CONFLICT);
+    if (
+      token === instructor.whatsappVerification.token &&
+      date > instructor.whatsappVerification.expiredAt
+    )
+      throw new HttpException(
+        'Token has expired, Please request for a new one',
+        HttpStatus.EXPECTATION_FAILED,
+      );
+    return await this.prisma.instructor.update({
+      where: { id },
+      data: {
+        phoned: true,
+      },
+    });
+  }
+
   public async findAll() {
     return this.prisma.instructor.findMany({
       include: {
@@ -157,6 +201,7 @@ export class InstructorService {
         InstructorVerification: true,
         approval: true,
         InstructForgotPassword: true,
+        whatsappVerification: true
       },
     });
   }
@@ -170,6 +215,7 @@ export class InstructorService {
         InstructForgotPassword: true,
         approval: true,
         InstructorVerification: true,
+        whatsappVerification: true
       },
     });
   }
@@ -183,8 +229,64 @@ export class InstructorService {
         InstructorVerification: true,
         approval: true,
         InstructForgotPassword: true,
+        whatsappVerification: true
       },
     });
+  }
+
+  public async getInstructorByPhone(phone: string) {
+    return this.prisma.instructor.findUnique({
+      where: { phone },
+      include: {
+        courses: true,
+        timetable: true,
+        InstructorVerification: true,
+        approval: true,
+        InstructForgotPassword: true,
+        whatsappVerification: true
+      },
+    });
+  }
+
+  public async whatsappVerificationData(phone: string) {
+    const instructor = await this.getInstructorByPhone(phone);
+    const currentDate = new Date();
+    const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+    const numbers: string = '1234567890';
+    let token: string = '';
+    for (let i = 0; i++; i < 6) {
+      const index = Math.floor(Math.random() * numbers.length);
+      token += numbers[index];
+    }
+    console.log(token);
+    if (!instructor.whatsappVerification) {
+      await this.prisma.instructor.update({
+        where: { id: instructor.id },
+        data: {
+          whatsappVerification: {
+            create: {
+              token: token,
+              createdAt: currentDate,
+              expiredAt: expiryDate,
+            },
+          },
+        },
+      });
+    } else {
+      await this.prisma.instructor.update({
+        where: { id: instructor.id },
+        data: {
+          whatsappVerification: {
+            update: {
+              token: token,
+              createdAt: currentDate,
+              expiredAt: expiryDate,
+            },
+          },
+        },
+      });
+    }
+    return token;
   }
 
   public async InstructPasswordData(email: string) {
@@ -331,14 +433,7 @@ export class InstructorService {
     if (checkMail) {
         return checkMail;
     } else {
-        const numbers = "1234567890";
-        const symbols = ".,?!@#$%*&";
-        let chosen_numbers = "";
-        for (let i = 0; i < 2; i++) {
-            const random = Math.floor(Math.random() * numbers.length);
-            chosen_numbers += numbers[random];
-        }
-        const chosen_symbol = symbols[Math.floor(Math.random() * symbols.length)];
+       
         const gender = "default";
         // Ensure user is properly initialized
         instructor = {} as UpdateInstructorDto;
@@ -348,8 +443,8 @@ export class InstructorService {
         instructor.verified = true;
         instructor.gender = gender;
         instructor.major = "default";
-
-        const password = name + chosen_numbers + chosen_symbol;
+        const chosen = await this.random.randomPassword();
+        const password = name + chosen;
         const hash = await argon2.hash(password);
         instructor.password = hash;
 
@@ -368,17 +463,104 @@ export class InstructorService {
     }
 }
 
-public async generateToken(user: any){
-    return {
-        access_token: this.jwtService.sign({
-            name: user.name,
-            sub: user.id
-        })
-    }
-}
+  public async generateToken(user: any){
+      return {
+          access_token: this.jwtService.sign({
+              name: user.name,
+              sub: user.id
+          })
+      }
+  }
 
-  update(id: number, updateInstructorDto: UpdateInstructorDto) {
-    return `This action updates a #${id} instructor`;
+  public async update(id: number, updates: UpdateInstructorDto) {
+    const instructor = await this.findOne(id);
+    if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    const birthDate = new Date(updates.dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+    const dayDifference = today.getDate() - birthDate.getDate();
+    // Adjust age if the current date has not yet reached the birthday for this year
+    if (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)) {
+      age--;
+    }
+    updates.age = Math.floor(age);
+    return await this.prisma.instructor.update({
+      where: { id },
+      data: {
+        name: updates.name,
+        gender: updates.gender,
+        bio: updates.bio,
+        dob: birthDate,
+        age: updates.age,
+        major: updates.major
+      },
+    });
+  }
+
+  public async updateEmail(id: number, updates: UpdateInstructorDto) {
+    const instructor = await this.findOne(id);
+    if (!instructor) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    if (updates.email === instructor.email)
+      throw new HttpException(
+        'You cannot update to the same email',
+        HttpStatus.CONFLICT,
+      );
+    const checkMail = await this.getInstructorByEmail(updates.email);
+    if (checkMail)
+      throw new HttpException('Instructor already exists', HttpStatus.FORBIDDEN);
+    await this.prisma.instructor.update({
+      where: { id },
+      data: {
+        email: updates.email,
+        verified: false,
+      },
+    });
+    return await this.sendVerification(updates.email);
+  }
+
+  public async updatePhone(id: number, updates: UpdateInstructorDto) {
+    const instructor = await this.findOne(id);
+    if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    if (updates.phone === instructor.phone)
+      throw new HttpException(
+        'You cannot update to the same phone',
+        HttpStatus.CONFLICT,
+      );
+    const checkPhone = await this.getInstructorByPhone(updates.phone);
+    if (checkPhone)
+      throw new HttpException('Instructor already exists', HttpStatus.FORBIDDEN);
+    await this.prisma.instructor.update({
+      where: { id },
+      data: {
+        phone: updates.phone,
+        phoned: false,
+      },
+    });
+    return await this.sendWhatsappVerification(updates.phone);
+  }
+
+  public async updatePassword(id: number, updates: UpdateInstructorDto) {
+    const instructor = await this.findOne(id);
+    if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    const { previous, password, confirm } = updates;
+    if (!(await argon2.verify(previous, instructor.password)))
+      throw new HttpException(
+        'Password is incorrect',
+        HttpStatus.EXPECTATION_FAILED,
+      );
+    if (password !== confirm)
+      throw new HttpException(
+        'Passwords are not matching',
+        HttpStatus.CONFLICT,
+      );
+    const hash = await argon2.hash(password);
+    return await this.prisma.instructor.update({
+      where: { id },
+      data: {
+        password: hash,
+      },
+    });
   }
 
   remove(id: number) {
