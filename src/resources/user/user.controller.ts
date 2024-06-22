@@ -128,7 +128,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
-  @Patch('phone/settings')
+  @Patch('password/settings')
   updatePassword(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updatePassword(req.user.id, updateUserDto);
   }

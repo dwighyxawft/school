@@ -18,7 +18,7 @@ export class UserService {
     private config: ConfigService,
     private jwtService: JwtService,
     private twilio: TwilioProvider,
-    private random: RandomUtil
+    private random: RandomUtil,
   ) {}
   public async register(data: CreateUserDto) {
     const checkMail = await this.getUserByEmail(data.email);
@@ -119,13 +119,7 @@ export class UserService {
     const user = await this.getUserByPhone(phone);
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-    const numbers: string = '1234567890';
-    let token: string = '';
-    for (let i = 0; i++; i < 6) {
-      const index = Math.floor(Math.random() * numbers.length);
-      token += numbers[index];
-    }
-    console.log(token);
+    const token = await this.random.randomToken();
     if (!user.whatsappVerification) {
       await this.prisma.user.update({
         where: { id: user.id },
@@ -222,6 +216,7 @@ export class UserService {
     if (!checkPhone)
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     const token = await this.whatsappVerificationData(phone);
+    console.log('Token created ', token);
     const body: string =
       'Welcome to xawft academy. To verify your whatsapp contact, use the token ' +
       token +
@@ -300,6 +295,7 @@ export class UserService {
         },
         userVerification: true,
         transactions: true,
+        whatsappVerification: true,
       },
     });
   }
@@ -495,14 +491,11 @@ export class UserService {
   public async updatePhone(id: number, updates: UpdateUserDto) {
     const user = await this.findOne(id);
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    if (updates.phone === user.phone)
-      throw new HttpException(
-        'You cannot update to the same phone',
-        HttpStatus.CONFLICT,
-      );
     const checkPhone = await this.getUserByPhone(updates.phone);
-    if (checkPhone)
-      throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+    if (checkPhone) {
+      if (updates.phone !== checkPhone.phone)
+        throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+    }
     await this.prisma.user.update({
       where: { id },
       data: {

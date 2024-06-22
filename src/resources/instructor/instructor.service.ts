@@ -122,7 +122,7 @@ export class InstructorService {
   public async sendWhatsappVerification(phone: string) {
     const checkPhone = await this.getInstructorByPhone(phone);
     if (!checkPhone)
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Insructor not found', HttpStatus.NOT_FOUND);
     const token = await this.whatsappVerificationData(phone);
     const body: string =
       'Welcome to xawft academy. To verify your whatsapp contact, use the token ' +
@@ -252,13 +252,7 @@ export class InstructorService {
     const instructor = await this.getInstructorByPhone(phone);
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
-    const numbers: string = '1234567890';
-    let token: string = '';
-    for (let i = 0; i++; i < 6) {
-      const index = Math.floor(Math.random() * numbers.length);
-      token += numbers[index];
-    }
-    console.log(token);
+    const token = await this.random.randomToken();
     if (!instructor.whatsappVerification) {
       await this.prisma.instructor.update({
         where: { id: instructor.id },
@@ -522,14 +516,11 @@ export class InstructorService {
   public async updatePhone(id: number, updates: UpdateInstructorDto) {
     const instructor = await this.findOne(id);
     if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
-    if (updates.phone === instructor.phone)
-      throw new HttpException(
-        'You cannot update to the same phone',
-        HttpStatus.CONFLICT,
-      );
     const checkPhone = await this.getInstructorByPhone(updates.phone);
-    if (checkPhone)
-      throw new HttpException('Instructor already exists', HttpStatus.FORBIDDEN);
+    if (checkPhone){
+      if(updates.phone !== checkPhone.phone)throw new HttpException('Instructor already exists', HttpStatus.FORBIDDEN);
+    }
+      
     await this.prisma.instructor.update({
       where: { id },
       data: {

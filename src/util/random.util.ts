@@ -15,4 +15,14 @@ constructor(){}
         const chosen = chosen_numbers + chosen_symbol;
         return chosen;
     }
+
+    public async randomToken(): Promise<string>{
+        const numbers: string = '1234567890';
+        let token: string = '';
+        for (let i = 0; i<6; i++) {
+        const index = Math.floor(Math.random() * numbers.length);
+        token += numbers[index];
+        }
+        return token
+    }
 }

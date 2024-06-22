@@ -33,6 +33,7 @@ model User {
   phoned               Boolean?                  @default(false)
   notifications        Notification[]            @relation("UserNotifications")
   whatsappVerification UserWhatsappVerification?
+  status               String                    @default("offline")
 }
 
 model UserCourse {
