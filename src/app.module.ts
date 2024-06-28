@@ -10,9 +10,10 @@ import { ConfigModule } from '@nestjs/config';
 import { config } from './constants/config.constants';
 import { AuthModule } from './resources/auth/auth.module';
 import { AdminModule } from './resources/admin/admin.module';
+import { TransactionModule } from './resources/transaction/transaction.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule,],
+  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule,],
   controllers: [AppController],
   providers: [AppService],
 })

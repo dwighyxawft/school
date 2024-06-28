@@ -8,10 +8,16 @@ import {
   Delete,
   Req,
   UseGuards,
+  ValidationPipe,
+  UsePipes,
+  UseInterceptors,
+  Request,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 
 @Controller('admin')
 export class AdminController {
@@ -32,6 +38,23 @@ export class AdminController {
     return this.adminService.sendVerification(body.email);
   }
 
+  @Post('reset/password')
+  resetPassword(@Body() body: { email: string }) {
+    return this.adminService.resetPassword(body.email);
+  }
+
+  @Get('reset/password/:id/:token')
+  resetPasswordDefault(@Param('id') id: string, @Param('token') token: string) {
+    return this.adminService.resetPasswordDefault(+id, token);
+  }
+
+  @Patch('update/reset/:id')
+  @
+  UsePipes(ValidationPipe)
+  updateResetPassword(@Param('id') id: string, @Body() body: UpdateAdminDto) {
+    return this.adminService.updateResetPassword(+id, body);
+  }
+
   @Get()
   findAll() {
     return this.adminService.findAll();
@@ -42,9 +65,32 @@ export class AdminController {
     return this.adminService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
-    return this.adminService.update(+id, updateAdminDto);
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('personal/settings')
+  update(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
+    return this.adminService.update(req.user.id, updateAdminDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('email/settings')
+  updateEmail(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
+    return this.adminService.updateEmail(req.user.id, updateAdminDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('phone/settings')
+  updatePhone(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
+    return this.adminService.updatePhone(req.user.id, updateAdminDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @Patch('password/settings')
+  updatePassword(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
+    return this.adminService.updatePassword(req.user.id, updateAdminDto);
   }
 
   @Delete(':id')

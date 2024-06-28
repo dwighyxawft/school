@@ -90,6 +90,7 @@ model Instructor {
   admin                  Admin?                          @relation(fields: [adminId], references: [id])
   notifications          Notification[]                  @relation("InstructorNotifications")
   whatsappVerification   InstructorWhatsappVerification?
+  Transaction            Transaction[]
 }
 
 model InstructorApproval {
@@ -143,6 +144,18 @@ model InstructForgotPassword {
   @@unique([instructorId, token])
 }
 
+model AdminForgotPassword {
+  id        Int       @id @default(autoincrement())
+  admin     Admin     @relation(fields: [adminId], references: [id])
+  adminId   Int       @unique
+  token     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiredAt DateTime?
+
+  @@unique([adminId, token])
+}
+
 model UserVerification {
   id        Int       @id @default(autoincrement())
   userId    Int       @unique
@@ -179,6 +192,18 @@ model InstructorWhatsappVerification {
   @@unique([instructorId, token])
 }
 
+model AdminWhatsappVerification {
+  id        Int       @id @default(autoincrement())
+  adminId   Int       @unique
+  admi      Admin     @relation(fields: [adminId], references: [id])
+  token     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiredAt DateTime?
+
+  @@unique([adminId, token])
+}
+
 model InstructorVerification {
   id           Int        @id @default(autoincrement())
   instructorId Int        @unique
@@ -204,34 +229,40 @@ model AdminVerification {
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  courseId  Int      @map("course_id")
-  course    Course   @relation(fields: [courseId], references: [id])
-  userId    Int      @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  amount    BigInt
-  status    String
-  ref       String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int        @id @default(autoincrement())
+  courseId     Int        @map("course_id")
+  course       Course     @relation(fields: [courseId], references: [id])
+  userId       Int        @map("user_id")
+  user         User       @relation(fields: [userId], references: [id])
+  instructorId Int        @map("instructor_id")
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  amount       BigInt
+  status       String     @default("pending")
+  ref          String
+  purpose      String?    @default("Course payment")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Admin {
-  id                Int                @id @default(autoincrement())
-  name              String?
-  email             String             @unique
-  phone             String?            @unique
-  password          String
-  role              String             @default("admin")
-  gender            String
-  image             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  verified          Boolean?           @default(false)
-  phoned            Boolean?           @default(false)
-  notifications     Notification[]     @relation("AdminNotifications")
-  Instructor        Instructor[]
-  AdminVerification AdminVerification?
+  id                        Int                        @id @default(autoincrement())
+  name                      String?
+  email                     String                     @unique
+  phone                     String?                    @unique
+  password                  String
+  role                      String                     @default("admin")
+  gender                    String
+  image                     String?
+  bio                       String?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  verified                  Boolean?                   @default(false)
+  phoned                    Boolean?                   @default(false)
+  notifications             Notification[]             @relation("AdminNotifications")
+  Instructor                Instructor[]
+  AdminVerification         AdminVerification?
+  AdminForgotPassword       AdminForgotPassword?
+  AdminWhatsappVerification AdminWhatsappVerification?
 }
 
 model Notification {

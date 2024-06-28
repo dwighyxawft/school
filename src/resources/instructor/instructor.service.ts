@@ -201,7 +201,8 @@ export class InstructorService {
         InstructorVerification: true,
         approval: true,
         InstructForgotPassword: true,
-        whatsappVerification: true
+        whatsappVerification: true,
+        Transaction: true
       },
     });
   }
@@ -215,7 +216,8 @@ export class InstructorService {
         InstructForgotPassword: true,
         approval: true,
         InstructorVerification: true,
-        whatsappVerification: true
+        whatsappVerification: true,
+        Transaction: true
       },
     });
   }
@@ -229,7 +231,8 @@ export class InstructorService {
         InstructorVerification: true,
         approval: true,
         InstructForgotPassword: true,
-        whatsappVerification: true
+        whatsappVerification: true,
+        Transaction: true
       },
     });
   }
@@ -243,7 +246,8 @@ export class InstructorService {
         InstructorVerification: true,
         approval: true,
         InstructForgotPassword: true,
-        whatsappVerification: true
+        Transaction: true,
+        whatsappVerification: true,
       },
     });
   }
