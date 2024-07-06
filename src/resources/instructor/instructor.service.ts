@@ -66,11 +66,11 @@ export class InstructorService {
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
-    if (!instructor.InstructorVerification) {
+    if (!instructor.verification) {
       await this.prisma.instructor.update({
         where: { email },
         data: {
-          InstructorVerification: {
+          verification: {
             create: {
               token: token,
               expiredAt: expiryDate,
@@ -82,10 +82,11 @@ export class InstructorService {
       await this.prisma.instructor.update({
         where: { email },
         data: {
-          InstructorVerification: {
+          verification: {
             update: {
               token: token,
               expiredAt: expiryDate,
+              used: false
             },
           },
         },
@@ -158,9 +159,22 @@ export class InstructorService {
       );
     }
 
+    if (instructorVerify.used) {
+      throw new HttpException(
+        'This token has been used',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     await this.prisma.instructor.update({
       where: { id },
-      data: { verified: true },
+      data: { verified: true, 
+        verification: {
+          update: {
+            used: true
+          }
+        }
+       },
     });
 
     return { status: true, msg: 'Instructor successfully verified' };
@@ -170,21 +184,31 @@ export class InstructorService {
     const instructor = await this.findOne(id);
     const date = new Date();
     if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
-    if (!instructor.whatsappVerification || instructor.whatsappVerification == null)
+    if (!instructor.whatsapp || instructor.whatsapp == null)
       throw new HttpException(
         'Whatsapp verification not initialized',
         HttpStatus.BAD_REQUEST,
       );
-    if (token !== instructor.whatsappVerification.token)
+    if (token !== instructor.whatsapp.token)
       throw new HttpException('Token is incorrect', HttpStatus.CONFLICT);
     if (
-      token === instructor.whatsappVerification.token &&
-      date > instructor.whatsappVerification.expiredAt
+      token === instructor.whatsapp.token &&
+      date > instructor.whatsapp.expiredAt
     )
       throw new HttpException(
         'Token has expired, Please request for a new one',
         HttpStatus.EXPECTATION_FAILED,
       );
+
+      if (
+        token === instructor.whatsapp.token &&
+        date < instructor.whatsapp.expiredAt &&
+        instructor.whatsapp.used
+      )
+        throw new HttpException(
+          'Token has expired, Please request for a new one',
+          HttpStatus.EXPECTATION_FAILED,
+        );
     return await this.prisma.instructor.update({
       where: { id },
       data: {
@@ -198,11 +222,11 @@ export class InstructorService {
       include: {
         courses: true,
         timetable: true,
-        InstructorVerification: true,
+        verification: true,
         approval: true,
-        InstructForgotPassword: true,
-        whatsappVerification: true,
-        Transaction: true
+        forgotpassword: true,
+        transactions: true,
+        whatsapp: true,
       },
     });
   }
@@ -213,11 +237,11 @@ export class InstructorService {
       include: {
         courses: true,
         timetable: true,
-        InstructForgotPassword: true,
+        verification: true,
         approval: true,
-        InstructorVerification: true,
-        whatsappVerification: true,
-        Transaction: true
+        forgotpassword: true,
+        transactions: true,
+        whatsapp: true,
       },
     });
   }
@@ -228,11 +252,11 @@ export class InstructorService {
       include: {
         courses: true,
         timetable: true,
-        InstructorVerification: true,
+        verification: true,
         approval: true,
-        InstructForgotPassword: true,
-        whatsappVerification: true,
-        Transaction: true
+        forgotpassword: true,
+        transactions: true,
+        whatsapp: true,
       },
     });
   }
@@ -243,11 +267,11 @@ export class InstructorService {
       include: {
         courses: true,
         timetable: true,
-        InstructorVerification: true,
+        verification: true,
         approval: true,
-        InstructForgotPassword: true,
-        Transaction: true,
-        whatsappVerification: true,
+        forgotpassword: true,
+        transactions: true,
+        whatsapp: true,
       },
     });
   }
@@ -257,11 +281,11 @@ export class InstructorService {
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = await this.random.randomToken();
-    if (!instructor.whatsappVerification) {
+    if (!instructor.whatsapp) {
       await this.prisma.instructor.update({
         where: { id: instructor.id },
         data: {
-          whatsappVerification: {
+          whatsapp: {
             create: {
               token: token,
               createdAt: currentDate,
@@ -274,11 +298,12 @@ export class InstructorService {
       await this.prisma.instructor.update({
         where: { id: instructor.id },
         data: {
-          whatsappVerification: {
+          whatsapp: {
             update: {
               token: token,
               createdAt: currentDate,
               expiredAt: expiryDate,
+              used: false
             },
           },
         },
@@ -293,11 +318,11 @@ export class InstructorService {
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
     console.log(token);
-    if (instructor.InstructForgotPassword === null) {
+    if (instructor.forgotpassword === null) {
       await this.prisma.instructor.update({
         where: { id: instructor.id },
         data: {
-          InstructForgotPassword: {
+          forgotpassword: {
             create: {
               token: token,
               expiredAt: expiryDate,
@@ -309,10 +334,11 @@ export class InstructorService {
       await this.prisma.instructor.update({
         where: { id: instructor.id },
         data: {
-          InstructForgotPassword: {
+          forgotpassword: {
             update: {
               token: token,
               expiredAt: expiryDate,
+              used: false
             },
           },
         },
@@ -364,8 +390,9 @@ export class InstructorService {
     }
 
     if (
-      date > instructor.InstructForgotPassword.expiredAt ||
-      token != instructor.InstructForgotPassword.token
+      date > instructor.forgotpassword.expiredAt ||
+      token != instructor.forgotpassword.token ||
+      instructor.forgotpassword.used
     ) {
       throw new HttpException(
         'Link has expired, Please try again',
@@ -377,6 +404,11 @@ export class InstructorService {
       where: { id },
       data: {
         password: '',
+        forgotpassword: {
+          update: {
+            used: true
+          }
+        }
       },
     });
 
@@ -397,7 +429,7 @@ export class InstructorService {
       );
     }
 
-    if (date > instructor.InstructForgotPassword.expiredAt) {
+    if (date > instructor.forgotpassword.expiredAt) {
       throw new HttpException(
         'Link has expired, Please try again',
         HttpStatus.BAD_REQUEST,
@@ -405,8 +437,8 @@ export class InstructorService {
     }
 
     if (body.password === body.confirm) {
-      const hash = String(argon2.hash(body.password));
-      this.prisma.user.update({
+      const hash = String(await argon2.hash(body.password));
+      await this.prisma.instructor.update({
         where: { id },
         data: {
           password: hash,
@@ -483,17 +515,31 @@ export class InstructorService {
       age--;
     }
     updates.age = Math.floor(age);
-    return await this.prisma.instructor.update({
-      where: { id },
-      data: {
-        name: updates.name,
-        gender: updates.gender,
-        bio: updates.bio,
-        dob: birthDate,
-        age: updates.age,
-        major: updates.major
-      },
-    });
+    if(instructor.gender === "default"){
+      return await this.prisma.instructor.update({
+        where: { id },
+        data: {
+          name: updates.name,
+          gender: updates.gender,
+          bio: updates.bio,
+          dob: birthDate,
+          age: updates.age,
+          major: updates.major
+        },
+      });
+    }else{
+      return await this.prisma.instructor.update({
+        where: { id },
+        data: {
+          name: updates.name,
+          bio: updates.bio,
+          dob: birthDate,
+          age: updates.age,
+          major: updates.major
+        },
+      });
+    }
+   
   }
 
   public async updateEmail(id: number, updates: UpdateInstructorDto) {

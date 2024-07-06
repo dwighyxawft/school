@@ -1,11 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { UserService } from '../user/user.service';
+import { PrismaService } from 'database/prisma/prisma.service';
 
 @Injectable()
 export class TransactionService {
-  create(createTransactionDto: CreateTransactionDto) {
-    return 'This action adds a new transaction';
+  constructor(private userService: UserService, private prisma: PrismaService){}
+  public async create(transaction: CreateTransactionDto, id: number) {
+    const user = await this.userService.findOne(id);
+    if(!user) throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+    transaction.userId = id;
+
   }
 
   findAll() {

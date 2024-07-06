@@ -5,15 +5,22 @@ import { PrismaModule } from 'database/prisma/prisma.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { InstructorGoogleStrategy } from './strategy/google.strategy';
 import { JwtModule } from '@nestjs/jwt';
-import { jwtOptions } from 'src/constants/jwt.constant';
 import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
 import { RandomUtil } from 'src/util/random.util';
-import { JwtStrategy } from '../auth/jwt.strategy';
+import { InstructorJwtStrategy } from '../auth/instructor/instructor-jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   controllers: [InstructorController],
-  providers: [InstructorService, InstructorGoogleStrategy, TwilioProvider, RandomUtil, JwtStrategy],
-  imports: [PrismaModule, MailerModule, JwtModule.register(jwtOptions)],
+  providers: [InstructorService, InstructorGoogleStrategy, TwilioProvider, RandomUtil, InstructorJwtStrategy],
+  imports: [PrismaModule, MailerModule, JwtModule.registerAsync({
+    imports: [ConfigModule],
+    useFactory: async (configService: ConfigService) => ({
+      secret: configService.get<string>('JWT_SECRET'),
+      signOptions: { expiresIn: '1d' },
+    }),
+    inject: [ConfigService],
+  }),],
   exports: [InstructorService]
 })
 export class InstructorModule {}

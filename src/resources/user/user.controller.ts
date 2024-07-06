@@ -14,13 +14,13 @@ import {
   UseInterceptors,
   Request,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
+import { UserJwtAuthGuard } from '../auth/user/user-jwt-auth.guard';
+import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 
 @Controller('user')
 export class UserController {
@@ -62,7 +62,7 @@ export class UserController {
     return this.userService.userVerification(+id, token);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
   @Patch('verify/phone')
   verifyPhone(@Request() req ,@Body() body: {token: string}) {
@@ -105,28 +105,28 @@ export class UserController {
     return this.userService.findOne(+id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
   @Patch('personal/settings')
   update(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(req.user.id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
   @Patch('email/settings')
   updateEmail(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updateEmail(req.user.id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
   @Patch('phone/settings')
   updatePhone(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updatePhone(req.user.id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
   @Patch('password/settings')
   updatePassword(@Request() req ,@Body() updateUserDto: UpdateUserDto) {

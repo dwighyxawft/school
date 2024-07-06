@@ -16,8 +16,8 @@ import {
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
+import { AdminJwtAuthGuard } from '../auth/admin/admin-jwt-auth.guard';
+import { AdminAuthInterceptor } from 'src/interceptors/admin-auth.interceptor';
 
 @Controller('admin')
 export class AdminController {
@@ -65,29 +65,29 @@ export class AdminController {
     return this.adminService.findOne(+id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuthInterceptor)
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(AdminAuthInterceptor)
   @Patch('personal/settings')
   update(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.update(req.user.id, updateAdminDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuthInterceptor)
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(AdminAuthInterceptor)
   @Patch('email/settings')
   updateEmail(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.updateEmail(req.user.id, updateAdminDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuthInterceptor)
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(AdminAuthInterceptor)
   @Patch('phone/settings')
   updatePhone(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.updatePhone(req.user.id, updateAdminDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AuthInterceptor)
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(AdminAuthInterceptor)
   @Patch('password/settings')
   updatePassword(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.updatePassword(req.user.id, updateAdminDto);

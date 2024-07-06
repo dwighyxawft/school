@@ -47,10 +47,10 @@ export class AdminService {
     return await this.prisma.admin.findMany({
       include: {
         Instructor: true,
-        AdminVerification: true,
+        verification: true,
         notifications: true,
-        AdminForgotPassword: true,
-        AdminWhatsappVerification: true,
+        forgotpassword: true,
+        whatsapp: true,
       },
     });
   }
@@ -60,10 +60,10 @@ export class AdminService {
       where: { id },
       include: {
         Instructor: true,
-        AdminVerification: true,
+        verification: true,
         notifications: true,
-        AdminForgotPassword: true,
-        AdminWhatsappVerification: true,
+        forgotpassword: true,
+        whatsapp: true,
       },
     });
   }
@@ -74,11 +74,11 @@ export class AdminService {
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
     console.log(token);
-    if (!admin.AdminForgotPassword) {
+    if (!admin.forgotpassword) {
       await this.prisma.admin.update({
         where: { id: admin.id },
         data: {
-          AdminForgotPassword: {
+          forgotpassword: {
             create: {
               token: token,
               createdAt: currentDate,
@@ -91,11 +91,12 @@ export class AdminService {
       await this.prisma.admin.update({
         where: { id: admin.id },
         data: {
-          AdminForgotPassword: {
+          forgotpassword: {
             update: {
               token: token,
               createdAt: currentDate,
               expiredAt: expiryDate,
+              used: false
             },
           },
         },
@@ -109,11 +110,11 @@ export class AdminService {
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = await this.random.randomToken();
-    if (!admin.AdminWhatsappVerification) {
+    if (!admin.whatsapp) {
       await this.prisma.admin.update({
         where: { id: admin.id },
         data: {
-          AdminWhatsappVerification: {
+          whatsapp: {
             create: {
               token: token,
               createdAt: currentDate,
@@ -126,11 +127,12 @@ export class AdminService {
       await this.prisma.admin.update({
         where: { id: admin.id },
         data: {
-          AdminWhatsappVerification: {
+          whatsapp: {
             update: {
               token: token,
               createdAt: currentDate,
               expiredAt: expiryDate,
+              used: false
             },
           },
         },
@@ -144,10 +146,10 @@ export class AdminService {
       where: { email },
       include: {
         Instructor: true,
-        AdminVerification: true,
+        verification: true,
         notifications: true,
-        AdminForgotPassword: true,
-        AdminWhatsappVerification: true,
+        forgotpassword: true,
+        whatsapp: true,
       },
     });
   }
@@ -157,10 +159,10 @@ export class AdminService {
       where: { phone },
       include: {
         Instructor: true,
-        AdminVerification: true,
+        verification: true,
         notifications: true,
-        AdminForgotPassword: true,
-        AdminWhatsappVerification: true,
+        forgotpassword: true,
+        whatsapp: true,
       },
     });
   }
@@ -177,11 +179,11 @@ export class AdminService {
     const currentDate = new Date();
     const expiryDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
     const token = uuidv4();
-    if (!admin.AdminVerification) {
+    if (!admin.verification) {
       await this.prisma.admin.update({
         where: { email },
         data: {
-          AdminVerification: {
+          verification: {
             create: {
               token: token,
               expiredAt: expiryDate,
@@ -193,10 +195,11 @@ export class AdminService {
       await this.prisma.admin.update({
         where: { email },
         data: {
-          AdminVerification: {
+          verification: {
             update: {
               token: token,
               expiredAt: expiryDate,
+              used: true
             },
           },
         },
@@ -268,6 +271,13 @@ export class AdminService {
       );
     }
 
+    if (adminVerify.used) {
+      throw new HttpException(
+        'Expired Verification Token, Please login and retry',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     await this.prisma.admin.update({
       where: { id },
       data: { verified: true },
@@ -313,8 +323,9 @@ export class AdminService {
     }
 
     if (
-      date > admin.AdminForgotPassword.expiredAt ||
-      token != admin.AdminForgotPassword.token
+      date > admin.forgotpassword.expiredAt ||
+      token != admin.forgotpassword.token ||
+      admin.forgotpassword.used
     ) {
       throw new HttpException(
         'Link has expired, Please try again',
@@ -343,7 +354,7 @@ export class AdminService {
       throw new HttpException('Admin does not exist', HttpStatus.NOT_FOUND);
     }
 
-    if (date > admin.AdminForgotPassword.expiredAt) {
+    if (date > admin.forgotpassword.expiredAt) {
       throw new HttpException(
         'Link has expired, Please try again',
         HttpStatus.BAD_REQUEST,

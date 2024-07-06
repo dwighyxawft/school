@@ -11,9 +11,10 @@ import { config } from './constants/config.constants';
 import { AuthModule } from './resources/auth/auth.module';
 import { AdminModule } from './resources/admin/admin.module';
 import { TransactionModule } from './resources/transaction/transaction.module';
+import { CoursesModule } from './resources/courses/courses.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule,],
+  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule, CoursesModule,],
   controllers: [AppController],
   providers: [AppService],
 })

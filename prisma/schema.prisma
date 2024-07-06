@@ -65,32 +65,32 @@ model Course {
 }
 
 model Instructor {
-  id                     Int                             @id @default(autoincrement())
-  name                   String
-  email                  String                          @unique
-  phone                  String?                         @unique
-  major                  String
-  bio                    String?
-  image                  String?
-  gender                 String
-  dob                    DateTime
-  age                    Int?
-  courses                Course[]
-  timetable              Timetable[]
-  password               String
-  verified               Boolean                         @default(false)
-  access                 Boolean                         @default(false)
-  createdAt              DateTime                        @default(now())
-  updatedAt              DateTime                        @updatedAt
-  InstructorVerification InstructorVerification?
-  approval               InstructorApproval?
-  InstructForgotPassword InstructForgotPassword?
-  phoned                 Boolean?                        @default(false)
-  adminId                Int?
-  admin                  Admin?                          @relation(fields: [adminId], references: [id])
-  notifications          Notification[]                  @relation("InstructorNotifications")
-  whatsappVerification   InstructorWhatsappVerification?
-  Transaction            Transaction[]
+  id             Int                             @id @default(autoincrement())
+  name           String
+  email          String                          @unique
+  phone          String?                         @unique
+  major          String
+  bio            String?
+  image          String?
+  gender         String
+  dob            DateTime
+  age            Int?
+  courses        Course[]
+  timetable      Timetable[]
+  password       String
+  verified       Boolean                         @default(false)
+  access         Boolean                         @default(false)
+  createdAt      DateTime                        @default(now())
+  updatedAt      DateTime                        @updatedAt
+  verification   InstructorVerification?
+  approval       InstructorApproval?
+  forgotpassword InstructForgotPassword?
+  phoned         Boolean?                        @default(false)
+  adminId        Int?
+  admin          Admin?                          @relation(fields: [adminId], references: [id])
+  notifications  Notification[]                  @relation("InstructorNotifications")
+  whatsapp       InstructorWhatsappVerification?
+  transactions   Transaction[]
 }
 
 model InstructorApproval {
@@ -128,6 +128,7 @@ model ForgotPassword {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([userId, token])
 }
@@ -140,6 +141,7 @@ model InstructForgotPassword {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   expiredAt    DateTime?
+  used         Boolean    @default(false)
 
   @@unique([instructorId, token])
 }
@@ -152,6 +154,7 @@ model AdminForgotPassword {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([adminId, token])
 }
@@ -164,6 +167,7 @@ model UserVerification {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([userId, token])
 }
@@ -176,6 +180,7 @@ model UserWhatsappVerification {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([userId, token])
 }
@@ -188,6 +193,7 @@ model InstructorWhatsappVerification {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   expiredAt    DateTime?
+  used         Boolean    @default(false)
 
   @@unique([instructorId, token])
 }
@@ -200,6 +206,7 @@ model AdminWhatsappVerification {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([adminId, token])
 }
@@ -212,6 +219,7 @@ model InstructorVerification {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   expiredAt    DateTime?
+  used         Boolean    @default(false)
 
   @@unique([instructorId, token])
 }
@@ -224,6 +232,7 @@ model AdminVerification {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   expiredAt DateTime?
+  used      Boolean   @default(false)
 
   @@unique([adminId, token])
 }
@@ -245,24 +254,24 @@ model Transaction {
 }
 
 model Admin {
-  id                        Int                        @id @default(autoincrement())
-  name                      String?
-  email                     String                     @unique
-  phone                     String?                    @unique
-  password                  String
-  role                      String                     @default("admin")
-  gender                    String
-  image                     String?
-  bio                       String?
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @updatedAt
-  verified                  Boolean?                   @default(false)
-  phoned                    Boolean?                   @default(false)
-  notifications             Notification[]             @relation("AdminNotifications")
-  Instructor                Instructor[]
-  AdminVerification         AdminVerification?
-  AdminForgotPassword       AdminForgotPassword?
-  AdminWhatsappVerification AdminWhatsappVerification?
+  id             Int                        @id @default(autoincrement())
+  name           String?
+  email          String                     @unique
+  phone          String?                    @unique
+  password       String
+  role           String                     @default("admin")
+  gender         String
+  image          String?
+  bio            String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  verified       Boolean?                   @default(false)
+  phoned         Boolean?                   @default(false)
+  notifications  Notification[]             @relation("AdminNotifications")
+  Instructor     Instructor[]
+  verification   AdminVerification?
+  forgotpassword AdminForgotPassword?
+  whatsapp       AdminWhatsappVerification?
 }
 
 model Notification {

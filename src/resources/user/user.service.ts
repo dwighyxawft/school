@@ -457,14 +457,24 @@ export class UserService {
   public async update(id: number, updates: UpdateUserDto) {
     const user = await this.findOne(id);
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    return await this.prisma.user.update({
-      where: { id },
-      data: {
-        name: updates.name,
-        gender: updates.gender,
-        bio: updates.bio,
-      },
-    });
+    if(user.gender !== "default"){
+      return await this.prisma.user.update({
+        where: { id },
+        data: {
+          name: updates.name,
+          gender: updates.gender,
+          bio: updates.bio,
+        },
+      });
+    }else{
+      return await this.prisma.user.update({
+        where: { id },
+        data: {
+          name: updates.name,
+          bio: updates.bio,
+        },
+      });
+    }
   }
 
   public async updateEmail(id: number, updates: UpdateUserDto) {
