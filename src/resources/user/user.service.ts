@@ -539,6 +539,14 @@ export class UserService {
     });
   }
 
+  public async updateImage(id: number, file: Express.Multer.File){
+    const user = await this.findOne(id);
+    if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    return this.prisma.user.update({ where: { id }, data: {
+      image: file.filename
+    }})
+  }
+
   public async remove(id: number) {
     const user = await this.findOne(id);
     if (!user) throw new HttpException('User Not Found', HttpStatus.NOT_FOUND);

@@ -442,6 +442,19 @@ export class AdminService {
       },
     });
   }
+
+  public async updateImage(id: number, file: Express.Multer.File) {
+    const admin = await this.findOne(id);
+    if (!admin)
+      throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
+    return await this.prisma.admin.update({
+      where: { id },
+      data: {
+        image: file.filename,
+      },
+    });
+  }
+
   public async update(id: number, updates: UpdateAdminDto) {
     const admin = await this.findOne(id);
     if (!admin) throw new HttpException('User not found', HttpStatus.NOT_FOUND);

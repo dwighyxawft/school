@@ -12,12 +12,15 @@ import {
   UsePipes,
   UseInterceptors,
   Request,
+  UploadedFile,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { AdminJwtAuthGuard } from '../auth/admin/admin-jwt-auth.guard';
 import { AdminAuthInterceptor } from 'src/interceptors/admin-auth.interceptor';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerAdminConfig } from 'src/config/multer.config';
 
 @Controller('admin')
 export class AdminController {
@@ -91,6 +94,14 @@ export class AdminController {
   @Patch('password/settings')
   updatePassword(@Request() req ,@Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.updatePassword(req.user.id, updateAdminDto);
+  }
+
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(AdminAuthInterceptor)
+  @UseInterceptors(FileInterceptor("image", multerAdminConfig))
+  @Patch('image/settings')
+  updateImage(@Request() req , @UploadedFile() file: Express.Multer.File) {
+    return this.adminService.updateImage(req.user.id, file);
   }
 
   @Delete(':id')

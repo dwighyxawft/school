@@ -604,6 +604,14 @@ export class InstructorService {
     });
   }
 
+  public async updateImage(id: number, file: Express.Multer.File) {
+    const instructor = await this.findOne(id);
+    if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    return this.prisma.instructor.update({ where: { id }, data: {
+      image: file.filename
+    }})
+  }
+
   remove(id: number) {
     return `This action removes a #${id} instructor`;
   }

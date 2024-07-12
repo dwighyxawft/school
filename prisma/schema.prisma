@@ -51,6 +51,8 @@ model Course {
   description      String
   instructorId     Int
   instructor       Instructor    @relation(fields: [instructorId], references: [id])
+  categoryId       Int
+  category         Category      @relation(fields: [categoryId], references: [id]) // Many courses to one category
   price            BigInt
   duration         Int
   start            DateTime
@@ -62,6 +64,15 @@ model Course {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   transactions     Transaction[]
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  courses     Course[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Instructor {

@@ -13,8 +13,12 @@ export class CreateCourseDto {
     description: string;
 
     @IsNumber()
-    @IsNotEmpty()
-    instructorId: number;
+    @IsOptional()
+    instructorId?: number;
+
+    @IsNumber()
+    @IsOptional()
+    categoryId?: number;
 
     @IsNumber()
     @IsNotEmpty()
@@ -33,8 +37,8 @@ export class CreateCourseDto {
     end: Date;
 
     @IsString()
-    @IsNotEmpty()
-    thumbnail: string | "course.jpg";
+    @IsOptional()
+    thumbnail?: string | "course.jpg";
 
     @IsNumber()
     @IsNotEmpty()

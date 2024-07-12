@@ -13,6 +13,7 @@ import {
   Res,
   UseInterceptors,
   Request,
+  UploadedFile,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
@@ -21,6 +22,8 @@ import { AuthInterceptor } from 'src/interceptors/auth.interceptor';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerUserConfig } from 'src/config/multer.config';
 
 @Controller('user')
 export class UserController {
@@ -131,6 +134,14 @@ export class UserController {
   @Patch('password/settings')
   updatePassword(@Request() req ,@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updatePassword(req.user.id, updateUserDto);
+  }
+
+  @UseGuards(UserJwtAuthGuard)
+  @UseInterceptors(AuthInterceptor)
+  @UseInterceptors(FileInterceptor("image", multerUserConfig))
+  @Patch('image/settings')
+  updateImage(@Request() req , @UploadedFile() image: Express.Multer.File) {
+    return this.userService.updateImage(req.user.id, image);
   }
 
   @Delete(':id')

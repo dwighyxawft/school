@@ -3,14 +3,29 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'database/prisma/prisma.service';
 import { InstructorService } from '../instructor/instructor.service';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService, private instructService: InstructorService){}
+  constructor(private prisma: PrismaService, private instructService: InstructorService, private categoryService: CategoryService){}
   public async create(course: CreateCourseDto, id: number) {
     const instructor = await this.instructService.findOne(id);
+    const category = await this.categoryService.findOne(course.categoryId);
     if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
-    
+    if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
+    if(!category) throw new HttpException("Category Not Found", HttpStatus.BAD_REQUEST)
+    course.instructorId = instructor.id;
+    return this.prisma.course.create({ data: {
+      title: course.title,
+      description: course.description,
+      instructorId: course.instructorId,
+      price: course.price,
+      duration: course.duration,
+      start: course.start,
+      end: course.end,
+      categoryId: course.categoryId,
+      enrollment_limit: course.enrollment_limit,
+    }})
   }
 
   public async findAll() {
@@ -45,11 +60,40 @@ export class CoursesService {
     }})
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  public async update(id: number, course: UpdateCourseDto, course_id: number) {
+    const instructor = await this.instructService.findOne(id);
+    if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
+    if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
+    if(course.categoryId){
+      const category = await this.categoryService.findOne(course.categoryId);
+      if(!category) throw new HttpException("Category Not Found", HttpStatus.BAD_REQUEST)
+    }
+    const checkCourse = await this.findOne(course_id);
+    course.instructorId = instructor.id;
+    if(!checkCourse) throw new HttpException("Course not found", HttpStatus.BAD_REQUEST)
+    return await this.prisma.course.update({ where: { id: course_id }, data: {
+      title: course.title,
+      description: course.description,
+      instructorId: course.instructorId,
+      price: course.price,
+      duration: course.duration,
+      start: course.start,
+      end: course.end,
+      categoryId: course.categoryId,
+      enrollment_limit: course.enrollment_limit,
+    }})
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+  public async updateThumbnail(id: number, file: Express.Multer.File, course_id: number){
+    const instructor = await this.instructService.findOne(id);
+    if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
+    if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
+    return this.prisma.course.update({ where: { id: course_id }, data: {
+      thumbnail: file.filename
+    }})
+  }
+
+  public async remove(id: number) {
+    return this.prisma.course.delete({ where: { id }});
   }
 }

@@ -9,6 +9,7 @@ import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
 import { RandomUtil } from 'src/util/random.util';
 import { UserJwtStrategy } from '../auth/user/user-jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   controllers: [UserController],
@@ -20,7 +21,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       signOptions: { expiresIn: '1d' },
     }),
     inject: [ConfigService],
-  }),],
+  }), MulterModule.register({dest: "./src/uploads/images/users"})],
   exports: [UserService]
 })
 export class UserModule {}

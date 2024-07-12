@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, Req, UseGuards, Res, Request, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, Req, UseGuards, Res, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
 import { CreateInstructorDto } from './dto/create-instructor.dto';
 import { UpdateInstructorDto } from './dto/update-instructor.dto';
@@ -6,6 +6,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { InstructorJwtAuthGuard } from '../auth/instructor/instructor-jwt-auth.guard';
 import { InstructorAuthInterceptor } from 'src/interceptors/instructor-auth.interceptor';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerInstructorConfig } from 'src/config/multer.config';
 
 @Controller('instructor')
 export class InstructorController {
@@ -107,6 +109,15 @@ export class InstructorController {
   @Patch('phone/settings')
   updatePassword(@Request() req ,@Body() updates: UpdateInstructorDto) {
     return this.instructorService.updatePassword(req.user.id, updates);
+  }
+
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
+  @UseInterceptors(FileInterceptor("image", multerInstructorConfig))
+  @Patch('image/settings')
+  updateImage(@Request() req ,@UploadedFile() file: Express.Multer.File) {
+    console.log(req.user.id)
+    return this.instructorService.updateImage(req.user.id, file);
   }
 
 
