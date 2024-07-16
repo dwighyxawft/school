@@ -13,7 +13,8 @@ export class CoursesService {
     const category = await this.categoryService.findOne(course.categoryId);
     if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
     if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
-    if(!category) throw new HttpException("Category Not Found", HttpStatus.BAD_REQUEST)
+    if(!category) throw new HttpException("Category Not Found", HttpStatus.BAD_REQUEST);
+    if(instructor.courses.length == 3) throw new HttpException("Courses limit reached", HttpStatus.BAD_REQUEST)
     course.instructorId = instructor.id;
     return this.prisma.course.create({ data: {
       title: course.title,

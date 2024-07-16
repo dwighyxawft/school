@@ -1,15 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UseInterceptors, Request } from '@nestjs/common';
 import { TimetableService } from './timetable.service';
 import { CreateTimetableDto } from './dto/create-timetable.dto';
 import { UpdateTimetableDto } from './dto/update-timetable.dto';
+import { InstructorJwtAuthGuard } from '../auth/instructor/instructor-jwt-auth.guard';
+import { InstructorAuthInterceptor } from 'src/interceptors/instructor-auth.interceptor';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Controller('timetable')
 export class TimetableController {
   constructor(private readonly timetableService: TimetableService) {}
 
-  @Post()
-  create(@Body() createTimetableDto: CreateTimetableDto) {
-    return this.timetableService.create(createTimetableDto);
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
+  @Post(":course_id")
+  create(@Body() createTimetableDto: CreateTimetableDto, @Request() req, @Param("course_id") course_id: string) {
+    return this.timetableService.create(createTimetableDto, req.user.id, +course_id);
   }
 
   @Get()
@@ -22,13 +27,38 @@ export class TimetableController {
     return this.timetableService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTimetableDto: UpdateTimetableDto) {
-    return this.timetableService.update(+id, updateTimetableDto);
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
+  @Get('instructor')
+  getTableByInstructors(@Request() req) {
+    return this.timetableService.getTimetbleByInstructor(req.user.id);
   }
 
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
+  @Get('courses/:id')
+  getTableByCourses(@Request() req, @Param("id") id: string) {
+    return this.timetableService.getTimetableByCourses(req.user.id, +id);
+  }
+
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
+  @Patch(':course_id/:timetable_id')
+  update(@Param('course_id') course_id: string, @Param('timetable_id') timetable_id: string, @Body() updateTimetableDto: UpdateTimetableDto, @Request() req) {
+    return this.timetableService.update(req.user.id, +course_id, updateTimetableDto, +timetable_id);
+  }
+
+  @UseGuards(InstructorJwtAuthGuard)
+  @UseInterceptors(InstructorAuthInterceptor)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.timetableService.remove(+id);
   }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  private async setupDailyCronJobs() {
+    await this.timetableService.signalAllUsersForTodaysClasses();
+  }
+
+  
 }

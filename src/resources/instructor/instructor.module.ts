@@ -21,7 +21,7 @@ import { MulterModule } from '@nestjs/platform-express';
       signOptions: { expiresIn: '1d' },
     }),
     inject: [ConfigService],
-  }), MulterModule.register({dest: "./src/uploads/images/instructors"})],
+  }), MulterModule.register({dest: "./src/uploads/images/instructors"}),],
   exports: [InstructorService]
 })
 export class InstructorModule {}

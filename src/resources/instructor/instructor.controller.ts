@@ -120,7 +120,6 @@ export class InstructorController {
     return this.instructorService.updateImage(req.user.id, file);
   }
 
-
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.instructorService.remove(+id);

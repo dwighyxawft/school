@@ -16,7 +16,7 @@ export class InstructorService {
     private mailer: MailerService,
     private jwtService: JwtService,
     private twilio: TwilioProvider,
-    private random: RandomUtil
+    private random: RandomUtil,
   ) {}
   public async register(instructor: CreateInstructorDto) {
     const checkMail = await this.getInstructorByEmail(instructor.email);
@@ -615,4 +615,7 @@ export class InstructorService {
   remove(id: number) {
     return `This action removes a #${id} instructor`;
   }
+
+  
+
 }

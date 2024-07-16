@@ -15,9 +15,11 @@ import { CoursesModule } from './resources/courses/courses.module';
 import { CategoryModule } from './resources/category/category.module';
 import { TimetableModule } from './resources/timetable/timetable.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule, CoursesModule, CategoryModule, TimetableModule, MulterModule.register({dest: "./uploads"}, EventEmitterModule)],
+  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule, CoursesModule, CategoryModule, TimetableModule, MulterModule.register({dest: "./uploads"}), EventEmitterModule.forRoot(), ScheduleModule.forRoot()],
   controllers: [AppController],
   providers: [AppService],
 })
