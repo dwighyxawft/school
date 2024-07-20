@@ -55,10 +55,5 @@ export class TimetableController {
     return this.timetableService.remove(+id);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  private async setupDailyCronJobs() {
-    await this.timetableService.signalAllUsersForTodaysClasses();
-  }
-
   
 }

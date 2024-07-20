@@ -23,6 +23,25 @@ enum Days {
   Saturday
 }
 
+enum InterviewType {
+  OBJECTIVE
+  THEORY
+  PRACTICAL
+}
+
+enum InterviewPhase {
+  TEST
+  VIDEO_CHAT
+  COMPLETED
+}
+
+enum InterviewStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
 model User {
   id                   Int                       @id @default(autoincrement())
   name                 String
@@ -112,6 +131,7 @@ model Instructor {
   notifications  Notification[]                  @relation("InstructorNotifications")
   whatsapp       InstructorWhatsappVerification?
   transactions   Transaction[]
+  interview      Interview?
 }
 
 model InstructorApproval {
@@ -125,6 +145,70 @@ model InstructorApproval {
   interview    String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model Interview {
+  id            Int             @id @default(autoincrement())
+  name          String
+  instructorId  Int             @unique
+  instructor    Instructor      @relation(fields: [instructorId], references: [id])
+  type          InterviewType
+  phase         InterviewPhase
+  status        InterviewStatus
+  objectiveTest ObjectiveTest?
+  theoryTest    TheoryTest?
+  practicalTest PracticalTest?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Question {
+  id              Int           @id @default(autoincrement())
+  objectiveTestId Int           @unique
+  objectiveTest   ObjectiveTest @relation(fields: [objectiveTestId], references: [id])
+  text            String
+  options         Option[]
+  correctOption   Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Option {
+  id         Int      @id @default(autoincrement())
+  text       String
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
+}
+
+model ObjectiveTest {
+  id          Int        @id @default(autoincrement())
+  interviewId Int        @unique
+  interview   Interview  @relation(fields: [interviewId], references: [id])
+  questions   Question[]
+  score       Float?
+  passed      Boolean?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model TheoryTest {
+  id          Int       @id @default(autoincrement())
+  interviewId Int       @unique
+  interview   Interview @relation(fields: [interviewId], references: [id])
+  assignment  String // Description of the assignment
+  submission  String? // URL or path to the submitted work
+  score       Float?
+  passed      Boolean?
+}
+
+model PracticalTest {
+  id             Int       @id @default(autoincrement())
+  interviewId    Int       @unique
+  interview      Interview @relation(fields: [interviewId], references: [id])
+  projectDetails String // Description of the project
+  submission     String? // URL to the GitHub repository or project link
+  score          Float?
+  passed         Boolean?
 }
 
 model Timetable {
