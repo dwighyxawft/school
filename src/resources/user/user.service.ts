@@ -7,8 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
+import { unlink } from 'fs';
 
 @Injectable()
 export class UserService {
@@ -539,11 +540,14 @@ export class UserService {
     });
   }
 
-  public async updateImage(id: number, file: Express.Multer.File){
+  public async updateImage(id: number, file: string, url: string){
     const user = await this.findOne(id);
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    await unlink(file, (err) => {
+      console.error(err);
+    });
     return this.prisma.user.update({ where: { id }, data: {
-      image: file.filename
+      image: url
     }})
   }
 

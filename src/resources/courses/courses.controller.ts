@@ -6,10 +6,12 @@ import { InstructorJwtAuthGuard } from '../auth/instructor/instructor-jwt-auth.g
 import { InstructorAuthInterceptor } from 'src/interceptors/instructor-auth.interceptor';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerCourseConfig } from 'src/config/multer.config';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
+import { join } from 'path';
 
 @Controller('courses')
 export class CoursesController {
-  constructor(private readonly coursesService: CoursesService) {}
+  constructor(private readonly coursesService: CoursesService, private firebase: FirebaseService) {}
   
   @UseInterceptors(InstructorAuthInterceptor)
   @UseGuards(InstructorJwtAuthGuard)
@@ -39,8 +41,11 @@ export class CoursesController {
   @UseGuards(InstructorJwtAuthGuard)
   @Patch('thumbnail/:course_id')
   @UseInterceptors(FileInterceptor("thumbnail", multerCourseConfig))
-  updateThumbnail(@UploadedFile() file: Express.Multer.File ,@Param('course_id') course_id: string, @Request() req) {
-    return this.coursesService.updateThumbnail(req.user.id, file, +course_id);
+  async updateThumbnail(@UploadedFile() file: Express.Multer.File ,@Param('course_id') course_id: string, @Request() req) {
+    const filePath = join(__dirname, "..", "..", `uploads/images/courses/${file.filename}`);
+    const destination = `school/images/courses/${file.filename}`;
+    const url = await this.firebase.uploadFile(filePath, destination);
+    return this.coursesService.updateThumbnail(req.user.id, filePath, url ,+course_id);
   }
 
 

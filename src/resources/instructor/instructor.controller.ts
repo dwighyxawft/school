@@ -8,10 +8,12 @@ import { InstructorJwtAuthGuard } from '../auth/instructor/instructor-jwt-auth.g
 import { InstructorAuthInterceptor } from 'src/interceptors/instructor-auth.interceptor';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerInstructorConfig } from 'src/config/multer.config';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
+import { join } from 'path';
 
 @Controller('instructor')
 export class InstructorController {
-  constructor(private readonly instructorService: InstructorService) {}
+  constructor(private readonly instructorService: InstructorService, private firebase: FirebaseService) {}
 
   @Post()
   @UsePipes(ValidationPipe)
@@ -115,9 +117,11 @@ export class InstructorController {
   @UseInterceptors(InstructorAuthInterceptor)
   @UseInterceptors(FileInterceptor("image", multerInstructorConfig))
   @Patch('image/settings')
-  updateImage(@Request() req ,@UploadedFile() file: Express.Multer.File) {
-    console.log(req.user.id)
-    return this.instructorService.updateImage(req.user.id, file);
+  async updateImage(@Request() req ,@UploadedFile() file: Express.Multer.File) {
+    const filePath = join(__dirname, "..", "..", `uploads/images/instructors/${file.filename}`);
+    const destination = `school/images/instructors/${file.filename}`;
+    const url = await this.firebase.uploadFile(filePath, destination);
+    return this.instructorService.updateImage(req.user.id, filePath, url);
   }
 
   @Delete(':id')

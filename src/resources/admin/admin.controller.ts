@@ -21,10 +21,12 @@ import { AdminJwtAuthGuard } from '../auth/admin/admin-jwt-auth.guard';
 import { AdminAuthInterceptor } from 'src/interceptors/admin-auth.interceptor';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerAdminConfig } from 'src/config/multer.config';
+import { join } from 'path';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService, private firebase: FirebaseService) {}
 
   @Post('register')
   create(@Body() createAdminDto: CreateAdminDto) {
@@ -100,8 +102,11 @@ export class AdminController {
   @UseInterceptors(AdminAuthInterceptor)
   @UseInterceptors(FileInterceptor("image", multerAdminConfig))
   @Patch('image/settings')
-  updateImage(@Request() req , @UploadedFile() file: Express.Multer.File) {
-    return this.adminService.updateImage(req.user.id, file);
+  async updateImage(@Request() req , @UploadedFile() file: Express.Multer.File) {
+    const filePath = join(__dirname, "..", "..", `uploads/images/admins/${file.filename}`);
+    const destination = `school/images/admins/${file.filename}`;
+    const url = await this.firebase.uploadFile(filePath, destination);
+    return this.adminService.updateImage(req.user.id, filePath, url);
   }
 
   @Delete(':id')

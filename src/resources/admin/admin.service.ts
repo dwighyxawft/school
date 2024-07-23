@@ -5,8 +5,9 @@ import { PrismaService } from 'database/prisma/prisma.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
-import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
+import { unlink } from 'fs';
 
 @Injectable()
 export class AdminService {
@@ -443,14 +444,17 @@ export class AdminService {
     });
   }
 
-  public async updateImage(id: number, file: Express.Multer.File) {
+  public async updateImage(id: number, file: string, url: string) {
     const admin = await this.findOne(id);
     if (!admin)
       throw new HttpException('Admin not found', HttpStatus.NOT_FOUND);
+    await unlink(file, (err) => {
+      console.error(err);
+    });
     return await this.prisma.admin.update({
       where: { id },
       data: {
-        image: file.filename,
+        image: url,
       },
     });
   }

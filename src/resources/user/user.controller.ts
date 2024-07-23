@@ -24,10 +24,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerUserConfig } from 'src/config/multer.config';
+import { join } from 'path';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService, private firebase: FirebaseService) {}
 
   @Post('register')
   @UsePipes(ValidationPipe)
@@ -140,8 +142,11 @@ export class UserController {
   @UseInterceptors(AuthInterceptor)
   @UseInterceptors(FileInterceptor("image", multerUserConfig))
   @Patch('image/settings')
-  updateImage(@Request() req , @UploadedFile() image: Express.Multer.File) {
-    return this.userService.updateImage(req.user.id, image);
+  async updateImage(@Request() req , @UploadedFile() image: Express.Multer.File) {
+    const filePath = join(__dirname, "..", "..", `uploads/images/users/${image.filename}`);
+    const destination = `school/images/users/${image.filename}`;
+    const url = await this.firebase.uploadFile(filePath, destination);
+    return this.userService.updateImage(req.user.id, filePath, url);
   }
 
   @Delete(':id')

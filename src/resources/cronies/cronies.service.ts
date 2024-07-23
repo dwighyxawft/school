@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { TimetableService } from '../timetable/timetable.service';
 import { TimeUtil } from 'src/util/time.util';
-import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { UserService } from '../user/user.service';
 import { CoursesService } from '../courses/courses.service';
 import { Days } from 'src/enums/days.enum';

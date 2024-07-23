@@ -4,6 +4,7 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'database/prisma/prisma.service';
 import { InstructorService } from '../instructor/instructor.service';
 import { CategoryService } from '../category/category.service';
+import { unlink } from 'fs';
 
 @Injectable()
 export class CoursesService {
@@ -85,12 +86,15 @@ export class CoursesService {
     }})
   }
 
-  public async updateThumbnail(id: number, file: Express.Multer.File, course_id: number){
+  public async updateThumbnail(id: number, file: string, url: string , course_id: number){
     const instructor = await this.instructService.findOne(id);
     if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
     if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
+    await unlink(file, (err) => {
+      console.error(err);
+    });
     return this.prisma.course.update({ where: { id: course_id }, data: {
-      thumbnail: file.filename
+      thumbnail: file
     }})
   }
 

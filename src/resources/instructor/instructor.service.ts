@@ -6,8 +6,9 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
-import { TwilioProvider } from 'src/providers/twilio/twilio.provider';
+import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
+import { unlink } from 'fs';
 
 @Injectable()
 export class InstructorService {
@@ -604,11 +605,14 @@ export class InstructorService {
     });
   }
 
-  public async updateImage(id: number, file: Express.Multer.File) {
+  public async updateImage(id: number, file: string, url: string) {
     const instructor = await this.findOne(id);
     if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
+    await unlink(file, (err) => {
+      console.error(err);
+    });
     return this.prisma.instructor.update({ where: { id }, data: {
-      image: file.filename
+      image: url
     }})
   }
 

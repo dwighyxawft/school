@@ -20,9 +20,13 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventsModule } from './resources/events/events.module';
 import { CroniesModule } from './resources/cronies/cronies.module';
 import { InterviewModule } from './resources/interview/interview.module';
+import { OpenaiModule } from './providers/openai/openai.module';
+import { PaystackModule } from './providers/paystack/paystack.module';
+import { TwilioModule } from './providers/twilio/twilio.module';
+import { FirebaseModule } from './providers/firebase/firebase.module';
 
 @Module({
-  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule, CoursesModule, CategoryModule, TimetableModule, MulterModule.register({dest: "./uploads"}), EventEmitterModule.forRoot(), ScheduleModule.forRoot(), EventsModule, CroniesModule, InterviewModule],
+  imports: [PrismaModule, UserModule, InstructorModule, MailerModule.forRoot(mailer), ConfigModule.forRoot(config), AuthModule, AdminModule, TransactionModule, CoursesModule, CategoryModule, TimetableModule, MulterModule.register({dest: "./uploads"}), EventEmitterModule.forRoot(), ScheduleModule.forRoot(), EventsModule, CroniesModule, InterviewModule, OpenaiModule, PaystackModule, TwilioModule, FirebaseModule],
   controllers: [AppController],
   providers: [AppService],
 })
