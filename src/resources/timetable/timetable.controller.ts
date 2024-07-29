@@ -4,7 +4,6 @@ import { CreateTimetableDto } from './dto/create-timetable.dto';
 import { UpdateTimetableDto } from './dto/update-timetable.dto';
 import { InstructorJwtAuthGuard } from '../auth/instructor/instructor-jwt-auth.guard';
 import { InstructorAuthInterceptor } from 'src/interceptors/instructor-auth.interceptor';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Controller('timetable')
 export class TimetableController {

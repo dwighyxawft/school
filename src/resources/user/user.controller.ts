@@ -138,8 +138,8 @@ export class UserController {
     return this.userService.updatePassword(req.user.id, updateUserDto);
   }
 
-  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(AuthInterceptor)
+  @UseGuards(UserJwtAuthGuard)
   @UseInterceptors(FileInterceptor("image", multerUserConfig))
   @Patch('image/settings')
   async updateImage(@Request() req , @UploadedFile() image: Express.Multer.File) {

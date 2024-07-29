@@ -12,7 +12,6 @@ import {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
       const request = context.switchToHttp().getRequest();
       const accessToken = request.cookies['instructor_token'];
-      console.log(accessToken);
       if (accessToken) {
         request.headers.authorization = `Bearer ${accessToken}`;
       }

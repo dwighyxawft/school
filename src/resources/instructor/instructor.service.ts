@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
 import { unlink } from 'fs';
+import { AdminService } from '../admin/admin.service';
 
 @Injectable()
 export class InstructorService {
@@ -18,6 +19,7 @@ export class InstructorService {
     private jwtService: JwtService,
     private twilio: TwilioProvider,
     private random: RandomUtil,
+    private adminService: AdminService
   ) {}
   public async register(instructor: CreateInstructorDto) {
     const checkMail = await this.getInstructorByEmail(instructor.email);
@@ -55,6 +57,7 @@ export class InstructorService {
         password: instructor.password,
       },
     });
+    
     return await this.sendVerification(instructor.email);
   }
 
@@ -136,6 +139,7 @@ export class InstructorService {
 
   public async instructVerification(id: number, token: string) {
     const date = new Date();
+    const instructor = await this.findOne(id);
     const instructorVerify =
       await this.prisma.instructorVerification.findUnique({
         where: {
@@ -177,7 +181,10 @@ export class InstructorService {
         }
        },
     });
-
+    const admins = await this.adminService.findAll();
+    admins.forEach(async (admin) => {
+      await this.twilio.sendWhatsAppMessage(admin.phone, "A new instructor has been created and added to the system. Email is: "+instructor.email);
+    })
     return { status: true, msg: 'Instructor successfully verified' };
   }
 

@@ -11,6 +11,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { TwilioModule } from 'src/providers/twilio/twilio.module';
 import { FirebaseModule } from 'src/providers/firebase/firebase.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   controllers: [InstructorController],
@@ -22,7 +23,7 @@ import { FirebaseModule } from 'src/providers/firebase/firebase.module';
       signOptions: { expiresIn: '1d' },
     }),
     inject: [ConfigService],
-  }), MulterModule.register({dest: "./src/uploads/images/instructors"}), TwilioModule, FirebaseModule],
+  }), MulterModule.register({dest: "./src/uploads/images/instructors"}), TwilioModule, FirebaseModule, AdminModule],
   exports: [InstructorService]
 })
 export class InstructorModule {}
