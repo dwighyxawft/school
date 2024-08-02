@@ -8,7 +8,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { RandomUtil } from 'src/util/random.util';
 import { UserJwtStrategy } from '../auth/user/user-jwt.strategy';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MulterModule } from '@nestjs/platform-express';
 import { TwilioModule } from 'src/providers/twilio/twilio.module';
 import { FirebaseModule } from 'src/providers/firebase/firebase.module';
 
@@ -22,7 +21,7 @@ import { FirebaseModule } from 'src/providers/firebase/firebase.module';
       signOptions: { expiresIn: '1d' },
     }),
     inject: [ConfigService],
-  }), MulterModule.register({dest: "./src/uploads/images/users"}), TwilioModule, FirebaseModule],
+  }), TwilioModule, FirebaseModule],
   exports: [UserService]
 })
 export class UserModule {}

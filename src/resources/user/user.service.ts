@@ -5,21 +5,20 @@ import { PrismaService } from 'database/prisma/prisma.service';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
 import { MailerService } from '@nestjs-modules/mailer';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
-import { unlink } from 'fs';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private prisma: PrismaService,
     private mailer: MailerService,
-    private config: ConfigService,
     private jwtService: JwtService,
     private twilio: TwilioProvider,
     private random: RandomUtil,
+    private firebase: FirebaseService
   ) {}
   public async register(data: CreateUserDto) {
     const checkMail = await this.getUserByEmail(data.email);
@@ -244,6 +243,13 @@ export class UserService {
       );
     }
 
+    if (userVerification.used) {
+      throw new HttpException(
+        'Used verification token',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     if (date > userVerification.expiredAt) {
       throw new HttpException(
         'Expired Verification Token, Please login and retry',
@@ -278,6 +284,16 @@ export class UserService {
         'Token has expired, Please request for a new one',
         HttpStatus.EXPECTATION_FAILED,
       );
+      if (
+        user.whatsappVerification.used
+      )
+        throw new HttpException(
+          'Token has been used, Please request for a new one',
+          HttpStatus.EXPECTATION_FAILED,
+        );
+        await this.prisma.userWhatsappVerification.update({where: {userId: id}, data: {
+          used: true
+        }})
     return await this.prisma.user.update({
       where: { id },
       data: {
@@ -380,7 +396,6 @@ export class UserService {
   public async updateResetPassword(id: number, body: UpdateUserDto) {
     const user = await this.findOne(id);
     const date = new Date();
-    console.log(body);
     if (!user) {
       throw new HttpException('User does not exist', HttpStatus.NOT_FOUND);
     }
@@ -540,15 +555,41 @@ export class UserService {
     });
   }
 
-  public async updateImage(id: number, file: string, url: string){
+  public async updateImage(id: number, image: Express.Multer.File){
     const user = await this.findOne(id);
     if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    await unlink(file, (err) => {
-      console.error(err);
-    });
-    return this.prisma.user.update({ where: { id }, data: {
-      image: url
-    }})
+    const storage = await this.firebase.getStorageInstance();
+    const bucket = storage.bucket("gs://school-9ab47.appspot.com");
+    const fileName = `${Date.now()}_${image.fieldname}`;
+    const fileUpload = bucket.file("images/users/"+fileName);
+    const stream = fileUpload.createWriteStream({
+      metadata: {
+          contentType: image.mimetype,
+      },
+    })
+     const uploadPromise = new Promise((resolve, reject) => {
+      stream.on('error', (error) => {
+        reject(error);
+      })
+
+      stream.on('finish', () => {
+        fileUpload.makePublic();
+        const metadata = fileUpload.metadata.mediaLink;
+        resolve(metadata);
+      })
+      stream.end(image.buffer);
+    })
+
+    try {
+      const imageUrl = await uploadPromise;
+      return this.prisma.user.update({
+        where: { id },
+        data: { image: imageUrl },
+      });
+    } catch (err) {
+      throw new HttpException(`Thrown Exception: ${err.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
   }
 
   public async remove(id: number) {

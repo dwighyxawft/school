@@ -8,8 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
 import { TwilioProvider } from 'src/providers/twilio/twilio.service';
 import { RandomUtil } from 'src/util/random.util';
-import { unlink } from 'fs';
 import { AdminService } from '../admin/admin.service';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
 
 @Injectable()
 export class InstructorService {
@@ -19,7 +19,8 @@ export class InstructorService {
     private jwtService: JwtService,
     private twilio: TwilioProvider,
     private random: RandomUtil,
-    private adminService: AdminService
+    private adminService: AdminService,
+    private firebase: FirebaseService
   ) {}
   public async register(instructor: CreateInstructorDto) {
     const checkMail = await this.getInstructorByEmail(instructor.email);
@@ -612,15 +613,42 @@ export class InstructorService {
     });
   }
 
-  public async updateImage(id: number, file: string, url: string) {
+  public async updateImage(id: number, image: Express.Multer.File) {
     const instructor = await this.findOne(id);
     if (!instructor) throw new HttpException('Instructor not found', HttpStatus.NOT_FOUND);
-    await unlink(file, (err) => {
-      console.error(err);
-    });
-    return this.prisma.instructor.update({ where: { id }, data: {
-      image: url
-    }})
+    const storage = await this.firebase.getStorageInstance();
+    const bucket = storage.bucket("gs://school-9ab47.appspot.com");
+    const fileName = `${Date.now()}_${image.fieldname}`;
+    const fileUpload = bucket.file("images/instructors/"+fileName);
+    const stream = fileUpload.createWriteStream({
+      metadata: {
+          contentType: image.mimetype,
+      },
+    })
+     const uploadPromise = new Promise((resolve, reject) => {
+      stream.on('error', (error) => {
+        reject(error);
+      })
+
+      stream.on('finish', () => {
+        fileUpload.makePublic();
+        const metadata = fileUpload.metadata.mediaLink;
+        resolve(metadata);
+      })
+      stream.end(image.buffer);
+    })
+
+    try {
+      const imageUrl = await uploadPromise;
+      return this.prisma.instructor.update({
+        where: { id },
+        data: { image: imageUrl },
+      });
+    } catch (err) {
+      throw new HttpException(`Thrown Exception: ${err.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    
   }
 
   remove(id: number) {

@@ -13,17 +13,30 @@ import { AdminJwtStrategy } from './admin/admin-jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { NoAuthGuard } from './no-auth.guard';
 
-
 @Module({
-  providers: [AuthService, LocalStrategy, UserJwtStrategy, InstructorJwtStrategy, AdminJwtStrategy, NoAuthGuard],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    UserJwtStrategy,
+    InstructorJwtStrategy,
+    AdminJwtStrategy,
+    NoAuthGuard,
+  ],
   controllers: [AuthController],
-  imports: [UserModule, PassportModule, JwtModule.registerAsync({
-    imports: [ConfigModule],
-    useFactory: async (configService: ConfigService) => ({
-      secret: configService.get<string>('JWT_SECRET'),
-      signOptions: { expiresIn: '1d' },
+  imports: [
+    UserModule,
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1d' },
+      }),
+      inject: [ConfigService],
     }),
-    inject: [ConfigService],
-  }), ConfigModule, InstructorModule, AdminModule]
+    ConfigModule,
+    InstructorModule,
+    AdminModule,
+  ],
 })
 export class AuthModule {}

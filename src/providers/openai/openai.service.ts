@@ -53,6 +53,14 @@ export class OpenAIProvider {
     ];
     return await this.createCompletion(message);
   }
+
+  public async checkAnswer(constraint: {question: string, correct_answer: string, answerProvided: string}, msg: string) {
+    const message = [
+      { role: 'system', content: 'You are a helpful assistant. Here is the object that have already been generated: ' + JSON.stringify(constraint) + '. which contains the question, correct answer and the answer provided by the candidate. you are to cross reference the answer given to the answer provided. If the answer provided is relating or like the correct answer, you will give me the true and if not, give me false as your response, some answers provided might be correct but may not be provided as the correct answer, you can check it out and not necessarily compare with the correct answer given to you and answer true or false as response depending on whether the answer provided is correct or wrong without any additional information or preamble' },
+      { role: 'user', content: msg }
+    ];
+    return await this.createCompletion(message);
+  }
   
   public async generateText(msg: string) {
     const message = [

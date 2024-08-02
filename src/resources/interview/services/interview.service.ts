@@ -46,6 +46,7 @@ export class InterviewService {
             }
           },
           correctOption: true,
+          answersProvided: true
         }
       },
       interview: {
@@ -65,7 +66,8 @@ export class InterviewService {
     questions: {
       select: {
         text: true,
-        answer: true
+        answer: true,
+        answersProvided: true
       }
     }
   }});

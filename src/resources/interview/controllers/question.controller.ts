@@ -6,6 +6,8 @@ import { AdminJwtAuthGuard } from "src/resources/auth/admin/admin-jwt-auth.guard
 import { UpdateObjectiveQuestionDto } from "../dto/update-objective-question.dto";
 import { CreateTheoryQuestionDto } from "../dto/create-theory-question.dto";
 import { UpdateTheoryQuestionDto } from "../dto/update-theory-question.dto";
+import { InstructorJwtAuthGuard } from "src/resources/auth/instructor/instructor-jwt-auth.guard";
+import { InstructorAuthInterceptor } from "src/interceptors/instructor-auth.interceptor";
 
 @Controller("interview/question")
 export class InterViewQuestionController{
@@ -69,6 +71,20 @@ export class InterViewQuestionController{
     @Get("objective:id")
     getQuestionsOfObjectiveId(@Param("id") id: string){
         return this.questionService.getQuestionsofObjectiveId(+id)
+    }
+
+    @UseGuards(InstructorJwtAuthGuard)
+    @UseInterceptors(InstructorAuthInterceptor)
+    @Get("submit/objective:id")
+    submitObjectiveTest(@Param("id") id: string, @Request() req){
+        return this.questionService.submitObjectiveTest(req.user.id, +id)
+    }
+
+    @UseGuards(InstructorJwtAuthGuard)
+    @UseInterceptors(InstructorAuthInterceptor)
+    @Get("submit/theory:id")
+    submitTheoryTest(@Param("id") id: string, @Request() req){
+        return this.questionService.submitTheoryTest(req.user.id, +id)
     }
 
     @UseGuards(AdminJwtAuthGuard)

@@ -13,6 +13,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums for schemas
+
 enum Days {
   Sunday
   Monday
@@ -40,6 +42,15 @@ enum InterviewStatus {
   Completed
   Failed
 }
+
+enum PersonnelType {
+  USER
+  INSTRUCTOR
+  ADMIN
+}
+
+
+// Models for schemas
 
 model User {
   id                   Int                       @id @default(autoincrement())
@@ -421,8 +432,4 @@ model Notification {
   @@index([personnelId, personnelType])
 }
 
-enum PersonnelType {
-  USER
-  INSTRUCTOR
-  ADMIN
-}
+

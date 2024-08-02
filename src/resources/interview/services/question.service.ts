@@ -7,7 +7,6 @@ import { OpenAIProvider } from 'src/providers/openai/openai.service';
 import { UpdateObjectiveQuestionDto } from '../dto/update-objective-question.dto';
 import { CreateTheoryQuestionDto } from '../dto/create-theory-question.dto';
 import { UpdateTheoryQuestionDto } from '../dto/update-theory-question.dto';
-import { CreatePracticalProjectDto } from '../dto/create-practical-project.dto';
 
 @Injectable()
 export class InterviewQuestionService {
@@ -35,6 +34,7 @@ export class InterviewQuestionService {
         'Objective Test not found',
         HttpStatus.NOT_ACCEPTABLE,
       );
+    if(objective.questions.length >= 30) throw new HttpException("Cannot create more than 30 questions", HttpStatus.FORBIDDEN); 
     return this.prisma.interviewObjectiveQuestion.create({
       data: {
         objectiveId: test_id,
@@ -76,6 +76,7 @@ export class InterviewQuestionService {
         'Objective Test not found',
         HttpStatus.NOT_ACCEPTABLE,
       );
+      if(objective.questions.length >= 30) throw new HttpException("Cannot create more than 30 questions", HttpStatus.FORBIDDEN); 
     const allTestQuestionsAndOptions =
       await this.getQuestionsofObjectiveId(test_id);
     const allTestQuestions = allTestQuestionsAndOptions.map(
@@ -168,6 +169,7 @@ export class InterviewQuestionService {
         'Theory Test not found',
         HttpStatus.NOT_ACCEPTABLE,
       );
+      if(theory.questions.length >= 20) throw new HttpException("Cannot create more than 20 questions", HttpStatus.FORBIDDEN); 
     return this.prisma.interviewTheoryQuestion.create({
       data: {
         text: question.text,
@@ -191,6 +193,7 @@ export class InterviewQuestionService {
         'Theory Test not found',
         HttpStatus.NOT_ACCEPTABLE,
       );
+      if(theory.questions.length >= 20) throw new HttpException("Cannot create more than 20 questions", HttpStatus.FORBIDDEN); 
     const allTestQuestionsAndOptions =
       await this.getQuestionsOfTheoryId(test_id);
     const allTestQuestions = allTestQuestionsAndOptions.map(
@@ -217,6 +220,57 @@ export class InterviewQuestionService {
     });
   }
 
+  public async submitObjectiveTest(id: number, objectiveId: number){
+    const admin = await this.adminService.findOne(id);
+    const objective = await this.interview.getObjectiveTest(objectiveId);
+    if(!admin) throw new HttpException("Admin not found", HttpStatus.UNAUTHORIZED);
+    if(!objective) throw new HttpException("Objective Test not found", HttpStatus.NOT_FOUND);
+    let markGiven: number = 0;
+    objective.questions.forEach(async (question) => {
+      if(question.answersProvided.optionPicked === question.correctOption){
+          markGiven += 3;
+      }
+    })
+    const avg = (markGiven/90)*100
+    if(avg >= 70){
+      return this.prisma.objectiveTest.update({ where: {id: objectiveId}, data: {
+        score: avg,
+        passed: true
+      }})
+    }else{
+      return this.prisma.objectiveTest.update({ where: {id: objectiveId}, data: {
+        score: avg,
+        passed: false
+      }})
+    }
+  }
+
+  public async submitTheoryTest(id: number, theoryId: number){
+    const admin = await this.adminService.findOne(id);
+    const theory = await this.interview.getTheoryTest(theoryId);
+    if(!admin) throw new HttpException("Admin not found", HttpStatus.UNAUTHORIZED);
+    if(!theory) throw new HttpException("Theory Test not found", HttpStatus.NOT_FOUND);
+    let markGiven: number = 0;
+    theory.questions.forEach(async (question) => {
+      const payload = {question: question.text, correct_answer: question.answer, answerProvided: question.answersProvided.answer};
+      const check = await this.openai.checkAnswer(payload, "verify if the answer provided is correct.");
+      if(Boolean(check)){
+        markGiven += 5
+      }
+    })
+    if(markGiven >= 70){
+      return this.prisma.theoryTest.update({ where: {id: theoryId}, data: {
+        score: markGiven,
+        passed: true
+      }})
+    }else{
+      return this.prisma.theoryTest.update({ where: {id: theoryId}, data: {
+        score: markGiven,
+        passed: false
+      }})
+    }
+  }
+
   // GET QUESTIONS ENDPOINT
 
   // Get Objectives Questions Services
@@ -229,6 +283,12 @@ export class InterviewQuestionService {
             text: true,
           },
         },
+        answersProvided: {
+          select: {
+            instructorId: true,
+            optionPicked: true
+          }
+        }
       },
     });
   }
@@ -236,7 +296,14 @@ export class InterviewQuestionService {
   // Get Theory Questions Services
   public async getQuestionsOfTheoryId(theoryId: number) {
     return this.prisma.interviewTheoryQuestion.findMany({
-      where: { theoryId },
+      where: { theoryId }, include: {
+        answersProvided: {
+          select: {
+            answer: true, 
+            instructorId: true
+          }
+        }
+      }
     });
   }
 

@@ -100,13 +100,10 @@ export class AdminController {
 
   @UseGuards(AdminJwtAuthGuard)
   @UseInterceptors(AdminAuthInterceptor)
-  @UseInterceptors(FileInterceptor("image", multerAdminConfig))
+  @UseInterceptors(FileInterceptor("image"))
   @Patch('image/settings')
   async updateImage(@Request() req , @UploadedFile() file: Express.Multer.File) {
-    const filePath = join(__dirname, "..", "..", `uploads/images/admins/${file.filename}`);
-    const destination = `school/images/admins/${file.filename}`;
-    const url = await this.firebase.uploadFile(filePath, destination);
-    return this.adminService.updateImage(req.user.id, filePath, url);
+    return this.adminService.updateImage(req.user.id, file);
   }
 
   @Delete(':id')

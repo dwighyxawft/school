@@ -28,7 +28,7 @@ export class AuthController {
   @Post('login')
   public async login(@Request() req, @Res() res: Response): Promise<any> {
     const token = await this.authService.generateToken(req.user);
-    res.cookie('access_token', token.access_token, { httpOnly: true });
+    res.cookie('access_token', token.access_token, { httpOnly: true, maxAge: 24*60*60*1000 });
     return res.send({ token: token.access_token });
   }
 
@@ -46,8 +46,9 @@ export class AuthController {
   public async admin_loggedin(@Request() req): Promise<any> {
     return req.user;
   }
-  @UseGuards(UserJwtAuthGuard)
+  
   @UseInterceptors(AuthInterceptor)
+  @UseGuards(UserJwtAuthGuard)
   @Get('user')
   public async user(@Request() req): Promise<any> {
     return req.user;
@@ -59,7 +60,7 @@ export class AuthController {
   public async instructor(@Body() body: {email: string, password: string}, @Res() res: Response){
     const instructor = await this.authService.getInstructorCreds(body.email, body.password); 
     const token = await this.authService.generateToken(instructor);
-    res.cookie('instructor_token', token.access_token, { httpOnly: true });
+    res.cookie('instructor_token', token.access_token, { httpOnly: true, maxAge: 24*60*60*1000 });
     return res.send({ token: token.access_token });
   }
 
@@ -67,7 +68,7 @@ export class AuthController {
   public async admin(@Body() body: {email: string, password: string}, @Res() res: Response){
     const admin = await this.authService.getAdminCreds(body.email, body.password); 
     const token = await this.authService.generateToken(admin);
-    res.cookie('admin_token', token.access_token, { httpOnly: true });
+    res.cookie('admin_token', token.access_token, { httpOnly: true, maxAge: 24*60*60*1000 });
     return res.send({ token: token.access_token });
   }
 

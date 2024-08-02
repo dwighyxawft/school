@@ -4,7 +4,7 @@ import { Strategy } from 'passport-jwt';
 import { instructorJwtStrategy } from 'src/config/jwt.config';
 
 @Injectable()
-export class InstructorJwtStrategy extends PassportStrategy(Strategy, "jwt") {
+export class InstructorJwtStrategy extends PassportStrategy(Strategy, "instructor") {
   constructor() {
     super(instructorJwtStrategy);
   }

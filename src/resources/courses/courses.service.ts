@@ -4,11 +4,11 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { PrismaService } from 'database/prisma/prisma.service';
 import { InstructorService } from '../instructor/instructor.service';
 import { CategoryService } from '../category/category.service';
-import { unlink } from 'fs';
+import { FirebaseService } from 'src/providers/firebase/firebase.service';
 
 @Injectable()
 export class CoursesService {
-  constructor(private prisma: PrismaService, private instructService: InstructorService, private categoryService: CategoryService){}
+  constructor(private prisma: PrismaService, private instructService: InstructorService, private categoryService: CategoryService, private firebase: FirebaseService){}
   public async create(course: CreateCourseDto, id: number) {
     const instructor = await this.instructService.findOne(id);
     const category = await this.categoryService.findOne(course.categoryId);
@@ -86,16 +86,43 @@ export class CoursesService {
     }})
   }
 
-  public async updateThumbnail(id: number, file: string, url: string , course_id: number){
+  public async updateThumbnail(id: number, image: Express.Multer.File, course_id: number){
     const instructor = await this.instructService.findOne(id);
     if(!instructor) throw new HttpException("Instructor not found", HttpStatus.NOT_FOUND);
     if(instructor && !instructor.access) throw new HttpException("Instructor not approved", HttpStatus.FORBIDDEN);
-    await unlink(file, (err) => {
-      console.error(err);
-    });
-    return this.prisma.course.update({ where: { id: course_id }, data: {
-      thumbnail: file
-    }})
+    const storage = await this.firebase.getStorageInstance();
+    const bucket = storage.bucket("gs://school-9ab47.appspot.com");
+    const fileName = `${Date.now()}_${image.fieldname}`;
+    const fileUpload = bucket.file("images/courses/"+fileName);
+    const stream = fileUpload.createWriteStream({
+      metadata: {
+          contentType: image.mimetype,
+      },
+    })
+     const uploadPromise = new Promise((resolve, reject) => {
+      stream.on('error', (error) => {
+        reject(error);
+      })
+
+      stream.on('finish', () => {
+        fileUpload.makePublic();
+        const metadata = fileUpload.metadata.mediaLink;
+        resolve(metadata);
+      })
+      stream.end(image.buffer);
+    })
+
+    try {
+      const imageUrl = await uploadPromise;
+      return this.prisma.course.update({
+        where: { id: course_id },
+        data: { thumbnail: imageUrl },
+      });
+    } catch (err) {
+      throw new HttpException(`Thrown Exception: ${err.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    
   }
 
   public async remove(id: number) {
